@@ -4,6 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Responsive web application for Avalanche disaster relief network",
+
+  "engines": {
+    "node": "18.20.4"
+  },
+
   "scripts": {
     "dev": "vite",
     "build": "vite build",
