@@ -13,7 +13,7 @@ const VictimHelp = lazy(() => import('../pages/victim/VictimHelp'))
 const VictimRoutes = () => {
   return (
     <Layout>
-      <ProtectedRoute 
+      {/* <ProtectedRoute 
         requiredRoles={['victim', 'admin']}
         allowGuest={true}
         fallback={
@@ -23,7 +23,7 @@ const VictimRoutes = () => {
             <a href="/login" className="btn-primary">Access Emergency Services</a>
           </div>
         }
-      >
+      > */}
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route index element={<VictimDashboard />} />
@@ -33,7 +33,7 @@ const VictimRoutes = () => {
             <Route path="*" element={<Navigate to="/victim" replace />} />
           </Routes>
         </Suspense>
-      </ProtectedRoute>
+      {/* </ProtectedRoute> */}
     </Layout>
   )
 }

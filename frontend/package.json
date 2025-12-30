@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Responsive web application for Avalanche disaster relief network",
   "engines": {
-    "node": "18.20.4"
+    "node": "24.12.0"
   },
   "scripts": {
     "dev": "vite",
