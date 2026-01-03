@@ -1,0 +1,15 @@
+{
+  "name": "Avalanche Disaster Relief Network",
+  "short_name": "Relief Network",
+  "description": "Blockchain-powered disaster relief micro-funding network built on Avalanche",
+  "theme_color": "#e84142",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "finance", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

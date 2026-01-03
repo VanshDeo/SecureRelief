@@ -1,0 +1,26 @@
+# Production headers with Web3 wallet support and Google Fonts
+/*
+  # Enhanced Content Security Policy for Web3 application with Google Fonts
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.googletagmanager.com chrome-extension: moz-extension:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com chrome-extension: moz-extension:; font-src 'self' https://fonts.gstatic.com chrome-extension: moz-extension:; img-src 'self' data: https: blob: chrome-extension: moz-extension:; media-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://api.pinata.cloud https://gateway.pinata.cloud https://api.avax-test.network https://api.avax.network https://testnet.snowtrace.io https://snowtrace.io wss://api.avax-test.network wss://api.avax.network chrome-extension: moz-extension:; worker-src 'self' blob:; frame-src 'self' chrome-extension: moz-extension:; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none';
+  
+  # Security headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  
+  # Performance headers
+  Cache-Control: public, max-age=31536000, immutable
+
+# Specific caching for assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# API responses should not be cached
+/api/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  
+# Service worker
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate

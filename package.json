@@ -4,21 +4,12 @@
   "description": "Blockchain-powered disaster relief micro-funding network on Avalanche",
   "private": true,
   "scripts": {
-    "dev": "./scripts/integration-setup.sh",
-    "start": "./scripts/integration-setup.sh",
-    "stop": "./scripts/stop-services.sh",
-    "logs": "./scripts/view-logs.sh",
-    "test": "./scripts/test-integration.sh",
-    "test:health": "./scripts/test-integration.sh health",
-    "test:api": "./scripts/test-integration.sh api",
-    "test:frontend": "./scripts/test-integration.sh frontend",
-    "setup": "npm run dev",
-    "clean": "rm -rf .backend.pid .frontend.pid",
-    "install:all": "npm install && cd backend/api-server && npm install && cd ../../frontend && npm install",
-    "build": "cd frontend && npm run build",
-    "build:backend": "cd backend/api-server && npm run build",
-    "lint": "cd frontend && npm run lint",
-    "lint:backend": "cd backend/api-server && npm run lint"
+    "dev": "cd frontend-next && npm run dev",
+    "start": "cd frontend-next && npm run start",
+    "build": "cd frontend-next && npm run build",
+    "lint": "cd frontend-next && npm run lint",
+    "install:all": "npm install && cd frontend-next && npm install",
+    "clean": "rm -rf .backend.pid .frontend.pid"
   },
   "keywords": [
     "avalanche",

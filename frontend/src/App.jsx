@@ -9,31 +9,31 @@ import PerformanceDashboard from './components/Dev/PerformanceDashboard'
 import { AuthProvider } from './contexts/AuthContext'
 import { useWeb3Store } from './store/web3Store'
 import ErrorBoundary from './components/UI/ErrorBoundary'
-import { 
-  LazyRoutes, 
-  preloadCriticalRoutes, 
-  createLazyRoute 
+import {
+  LazyRoutes,
+  preloadCriticalRoutes,
+  createLazyRoute
 } from './utils/codeSplitting.jsx'
-import { 
-  initializePerformanceMonitoring, 
-  performanceMonitor 
+import {
+  initializePerformanceMonitoring,
+  performanceMonitor
 } from './utils/performance.jsx'
 
 // Role-based route groups with optimized chunking
-const AdminRoutes = createLazyRoute(() => import('./routes/AdminRoutes'), { 
-  chunkName: 'admin-routes' 
+const AdminRoutes = createLazyRoute(() => import('./routes/AdminRoutes'), {
+  chunkName: 'admin-routes'
 })
-const VendorRoutes = createLazyRoute(() => import('./routes/VendorRoutes'), { 
-  chunkName: 'vendor-routes' 
+const VendorRoutes = createLazyRoute(() => import('./routes/VendorRoutes'), {
+  chunkName: 'vendor-routes'
 })
-const VictimRoutes = createLazyRoute(() => import('./routes/VictimRoutes'), { 
-  chunkName: 'victim-routes' 
+const VictimRoutes = createLazyRoute(() => import('./routes/VictimRoutes'), {
+  chunkName: 'victim-routes'
 })
-const DonorRoutes = createLazyRoute(() => import('./routes/DonorRoutes'), { 
-  chunkName: 'donor-routes' 
+const DonorRoutes = createLazyRoute(() => import('./routes/DonorRoutes'), {
+  chunkName: 'donor-routes'
 })
-const GovernmentRoutes = createLazyRoute(() => import('./routes/GovernmentRoutes'), { 
-  chunkName: 'government-routes' 
+const GovernmentRoutes = createLazyRoute(() => import('./routes/GovernmentRoutes'), {
+  chunkName: 'government-routes'
 })
 
 // Simple role-based redirect component
@@ -69,7 +69,7 @@ const AppInitializing = () => (
         <div className="flex items-center justify-center w-24 h-24 mx-auto mb-4 bg-white rounded-full">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-avalanche-500">
             <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
+              <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" />
             </svg>
           </div>
         </div>
@@ -91,15 +91,15 @@ function App() {
   useEffect(() => {
     // Initialize performance monitoring
     const monitor = initializePerformanceMonitoring()
-    
+
     // Track app initialization
     performanceMonitor.mark('app-init')
-    
+
     console.log('App component mounted, calling initialize...')
     initialize()
-    
+
     performanceMonitor.measure('app-init')
-    
+
     // Preload critical routes after initialization
     if (isInitialized) {
       preloadCriticalRoutes()
@@ -145,117 +145,117 @@ function App() {
     >
       <AuthProvider>
         <div className="min-h-screen bg-gray-50">
-          <Suspense 
+          <Suspense
             fallback={<RouteLoadingFallback message="Loading page..." />}
           >
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LazyRoutes.Login />} />
               <Route path="/register" element={<LazyRoutes.Register />} />
-              
+
               {/* Public Pages with Layout */}
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 element={
                   <Layout>
                     <LazyRoutes.HomePage />
                   </Layout>
-                } 
+                }
               />
-              <Route 
-                path="/transparency" 
+              <Route
+                path="/transparency"
                 element={
                   <Layout>
                     <LazyRoutes.TransparencyPortal />
                   </Layout>
-                } 
+                }
               />
-              <Route 
-                path="/disaster/:id" 
+              <Route
+                path="/disaster/:id"
                 element={
                   <Layout>
                     <LazyRoutes.DisasterDetails />
                   </Layout>
-                } 
+                }
               />
-              <Route 
-                path="/proof-gallery" 
+              <Route
+                path="/proof-gallery"
                 element={
                   <Layout>
                     <LazyRoutes.ProofGallery />
                   </Layout>
-                } 
+                }
               />
-              
+
               {/* API Test - Development only */}
               {import.meta.env.DEV && (
-                <Route 
-                  path="/api-test" 
+                <Route
+                  path="/api-test"
                   element={
                     <Layout>
                       <LazyRoutes.APITestPage />
                     </Layout>
-                  } 
+                  }
                 />
               )}
-              
+
               {/* Role-based Route Groups */}
-              <Route 
-                path="/admin/*" 
+              <Route
+                path="/admin/*"
                 element={
                   <Suspense fallback={<RouteLoadingFallback message="Loading admin dashboard..." />}>
                     <AdminRoutes />
                   </Suspense>
-                } 
+                }
               />
-              <Route 
-                path="/vendor/*" 
+              <Route
+                path="/vendor/*"
                 element={
                   <Suspense fallback={<RouteLoadingFallback message="Loading vendor dashboard..." />}>
                     <VendorRoutes />
                   </Suspense>
-                } 
+                }
               />
-              <Route 
-                path="/victim/*" 
+              <Route
+                path="/victim/*"
                 element={
                   <Suspense fallback={<RouteLoadingFallback message="Loading victim dashboard..." />}>
                     <VictimRoutes />
                   </Suspense>
-                } 
+                }
               />
-              <Route 
-                path="/donor/*" 
+              <Route
+                path="/donor/*"
                 element={
                   <Suspense fallback={<RouteLoadingFallback message="Loading donor dashboard..." />}>
                     <DonorRoutes />
                   </Suspense>
-                } 
+                }
               />
-              <Route 
-                path="/government/*" 
+              <Route
+                path="/government/*"
                 element={
                   <Suspense fallback={<RouteLoadingFallback message="Loading government dashboard..." />}>
                     <GovernmentRoutes />
                   </Suspense>
-                } 
+                }
               />
-              
+
               {/* Legacy route redirects for backward compatibility */}
               <Route path="/donate" element={<Navigate to="/donor" replace />} />
-              <Route 
-                path="/dashboard" 
+              <Route
+                path="/dashboard"
                 element={
                   <Suspense fallback={<RouteLoadingFallback message="Redirecting..." />}>
                     <DashboardRedirect />
                   </Suspense>
-                } 
+                }
               />
-              
+
               {/* 404 Page */}
               <Route path="*" element={
                 <Layout>
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
@@ -268,8 +268,8 @@ function App() {
                         The page you're looking for seems to have drifted away.
                       </p>
                     </div>
-                    <motion.a 
-                      href="/" 
+                    <motion.a
+                      href="/"
                       className="inline-flex items-center btn-primary"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -284,15 +284,15 @@ function App() {
               } />
             </Routes>
           </Suspense>
-          
+
           {/* Development Debug Tools */}
-          {import.meta.env.DEV && (
+          {process.env.NODE_ENV === 'development' && (
             <>
               <WalletDebugger />
               <PerformanceDashboard />
             </>
           )}
-          
+
           {/* Toast Notifications with better styling */}
           <Toaster
             position="top-right"
