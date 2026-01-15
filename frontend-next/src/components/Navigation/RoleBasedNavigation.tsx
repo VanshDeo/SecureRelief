@@ -17,11 +17,11 @@ import {
   Settings,
   Building
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useWeb3Store } from '../../store/web3Store';
 import RoleGuard from '../Auth/RoleGuard';
 
 const RoleBasedNavigation = ({ isMobile = false, isCollapsed = false }: { isMobile?: boolean; isCollapsed?: boolean }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useWeb3Store();
   const pathname = usePathname();
 
   const getNavigationItems = () => {

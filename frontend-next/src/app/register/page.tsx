@@ -22,13 +22,20 @@ import {
 } from 'lucide-react';
 import Button from '@/components/UI/Button';
 import { useWeb3Store } from '@/store/web3Store';
-import { useAuth } from '@/contexts/AuthContext';
+// import { useAuth } from '@/contexts/AuthContext';
 import { showSuccess, handleError } from '@/utils/errorHandler';
 
 const Register = () => {
     const router = useRouter();
-    const { connectWallet, isConnected, account } = useWeb3Store();
-    const { register, isAuthenticated } = useAuth();
+    const {
+        connectWallet,
+        isConnected,
+        account,
+        userRole: web3Role,
+        register,
+        isAuthenticated,
+        user: authUser
+    } = useWeb3Store();
 
     const [authMode, setAuthMode] = useState('traditional'); // 'wallet', 'traditional'
     const [showPassword, setShowPassword] = useState(false);
@@ -46,21 +53,31 @@ const Register = () => {
         phone: '',
         terms: false
     });
-    const [errors, setErrors] = useState<any>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Redirect if already authenticated
     useEffect(() => {
-        if (isAuthenticated || (isConnected && account)) {
-            router.push('/');
+        if (isAuthenticated || (isConnected && account && web3Role)) {
+            const role = authUser?.role || web3Role;
+            const dashboardRoutes: Record<string, string> = {
+                admin: '/admin',
+                government: '/government',
+                treasury: '/treasury',
+                oracle: '/oracle',
+                vendor: '/vendor',
+                victim: '/victim',
+                donor: '/donate'
+            };
+            router.push(dashboardRoutes[role as string] || '/');
         }
-    }, [isConnected, account, isAuthenticated, router]);
+    }, [isConnected, account, web3Role, isAuthenticated, authUser, router]);
 
     const handleWalletRegister = async () => {
         setIsLoading(true);
         try {
             await connectWallet();
             showSuccess('Wallet connected! Please complete your profile.');
-            router.push('/profile-setup'); // Redirect to profile completion
+            router.push('/profile'); // Redirect to profile completion
         } catch (error) {
             handleError(error, {
                 context: 'Wallet Registration',
@@ -72,7 +89,7 @@ const Register = () => {
     };
 
     const validateStep1 = () => {
-        const newErrors: any = {};
+        const newErrors: Record<string, string> = {};
         if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
         if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
         if (!formData.email.trim()) newErrors.email = 'Email is required';
@@ -83,7 +100,7 @@ const Register = () => {
     };
 
     const validateStep2 = () => {
-        const newErrors: any = {};
+        const newErrors: Record<string, string> = {};
         if (!formData.password) newErrors.password = 'Password is required';
         if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
         if (formData.password !== formData.confirmPassword) {
@@ -125,14 +142,15 @@ const Register = () => {
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value, type } = (e.target as any);
-        const val = type === 'checkbox' ? (e.target as any).checked : value;
+        const target = e.target as HTMLInputElement; // cast to HTMLInputElement to access 'type' and 'checked' safely roughly
+        const { name, value, type } = target;
+        const val = type === 'checkbox' ? target.checked : value;
         setFormData(prev => ({
             ...prev,
             [name]: val
         }));
         if (errors[name]) {
-            setErrors((prev: any) => ({ ...prev, [name]: '' }));
+            setErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -261,7 +279,7 @@ const Register = () => {
                                         Web3 Registration
                                     </h2>
                                     <p className="text-gray-600 mb-6">
-                                        Connect your wallet to create an account. You'll need to complete your profile after connection.
+                                        Connect your wallet to create an account. You&apos;ll need to complete your profile after connection.
                                     </p>
 
                                     <Button

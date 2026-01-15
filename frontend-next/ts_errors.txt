@@ -1,0 +1,16 @@
+src/components/Dashboard/UniversalDashboard.tsx(252,11): error TS2322: Type '{ children: Element; permissions: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'permissions' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Dashboard/UniversalDashboard.tsx(292,11): error TS2322: Type '{ children: Element; roles: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Dashboard/UniversalDashboard.tsx(335,18): error TS2322: Type '{ children: Element; roles: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Dashboard/UniversalDashboard.tsx(348,18): error TS2322: Type '{ children: Element; roles: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Layout/Header.tsx(189,15): error TS2322: Type '{ children: Element; roles: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Layout/Header.tsx(282,34): error TS2322: Type '{ children: Element; roles: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Layout/MobileNavigation.tsx(111,15): error TS2322: Type '{ children: Element; key: string; roles: string[]; permissions: string[]; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.
+src/components/Navigation/RoleBasedNavigation.tsx(149,9): error TS2322: Type '{ children: Element; roles: any; permissions: any; fallback: null; }' is not assignable to type 'IntrinsicAttributes & RoleGuardProps'.
+  Property 'roles' does not exist on type 'IntrinsicAttributes & RoleGuardProps'.

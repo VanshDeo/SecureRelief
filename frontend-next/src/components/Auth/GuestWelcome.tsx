@@ -168,7 +168,7 @@ const GuestWelcome: React.FC<GuestWelcomeProps> = ({
                                 Ready to Make a Difference?
                             </h2>
                             <p className="max-w-2xl mx-auto mb-10 text-gray-300 text-lg">
-                                Join a global network of donors, first responders, and relief organizations working together to provide immediate aid where it's needed most.
+                                Join a global network of donors, first responders, and relief organizations working together to provide immediate aid where it&apos;s needed most.
                             </p>
                             <div className="flex flex-col justify-center gap-6 sm:flex-row">
                                 <Link href="/donate" className="w-full sm:w-auto">

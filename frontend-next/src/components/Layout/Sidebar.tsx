@@ -6,15 +6,14 @@ import { motion } from 'framer-motion'
 import {
   Menu,
   X,
-  Mountain,
   Settings,
   HelpCircle
 } from 'lucide-react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useWeb3Store } from '../../store/web3Store'
 import RoleBasedNavigation from '../Navigation/RoleBasedNavigation'
 
 const Sidebar = ({ isCollapsed = false, onToggle, onClose }: { isCollapsed?: boolean; onToggle?: () => void; onClose?: () => void }) => {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user } = useWeb3Store()
 
   const bottomNavigation = [
     {
@@ -46,29 +45,7 @@ const Sidebar = ({ isCollapsed = false, onToggle, onClose }: { isCollapsed?: boo
           </motion.button>
         )}
 
-        <div className="flex items-center overflow-hidden">
-          <Link href="/" className="flex items-center group" onClick={onClose}>
-            {!isCollapsed && (
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Mountain className="flex-shrink-0 w-8 h-8 text-green-500 transition-colors group-hover:text-green-600" />
-              </motion.div>
-            )}
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="ml-3 text-lg font-bold text-gray-900 whitespace-nowrap group-hover:text-green-600 transition-colors"
-              >
-                Relief Network
-              </motion.span>
-            )}
-          </Link>
-        </div>
+
 
         {/* Close button for mobile */}
         {onClose && (

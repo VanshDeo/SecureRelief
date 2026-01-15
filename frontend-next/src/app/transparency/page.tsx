@@ -20,8 +20,7 @@ import RealTimeStats from '@/components/Charts/RealTimeStats';
 import DonationChart from '@/components/Charts/DonationChart';
 import ImpactMetrics from '@/components/Charts/ImpactMetrics';
 import GeographicDistribution from '@/components/Charts/GeographicDistribution';
-import RealTimeMonitor from '@/components/DisasterRelief/RealTimeMonitor';
-import Layout from '@/components/Layout/Layout';
+import DashboardLayout from '@/components/Layout/DashboardLayout';
 
 interface Transaction {
     id: string;
@@ -150,18 +149,18 @@ const TransparencyPortal = () => {
 
     if (loading) {
         return (
-            <Layout>
+            <DashboardLayout fullWidth={true}>
                 <div className="min-h-screen">
                     <div className="flex items-center justify-center min-h-screen">
                         <LoadingSpinner size="lg" aria-label="Loading transparency data..." />
                     </div>
                 </div>
-            </Layout>
+            </DashboardLayout>
         );
     }
 
     return (
-        <Layout>
+        <DashboardLayout fullWidth={true}>
             <div className="min-h-screen">
                 <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Ongoing Disaster Event Section */}
@@ -344,7 +343,7 @@ const TransparencyPortal = () => {
                     </AnimatePresence>
                 </div>
             </div>
-        </Layout>
+        </DashboardLayout>
     );
 };
 

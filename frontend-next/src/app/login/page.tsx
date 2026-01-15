@@ -19,13 +19,20 @@ import {
 } from 'lucide-react';
 import Button from '@/components/UI/Button';
 import { useWeb3Store } from '@/store/web3Store';
-import { useAuth } from '@/contexts/AuthContext';
+// import { useAuth } from '@/contexts/AuthContext';
 import { showSuccess, handleError } from '@/utils/errorHandler';
 
 const Login = () => {
     const router = useRouter();
-    const { connectWallet, isConnected, account, userRole: web3Role } = useWeb3Store();
-    const { login, isAuthenticated, user: authUser } = useAuth();
+    const {
+        connectWallet,
+        isConnected,
+        account,
+        userRole: web3Role,
+        login,
+        isAuthenticated,
+        user: authUser
+    } = useWeb3Store();
 
     const [authMode, setAuthMode] = useState('wallet'); // 'wallet', 'traditional'
     const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +42,7 @@ const Login = () => {
         password: '',
         role: 'donor'
     });
-    const [errors, setErrors] = useState<any>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Redirect if already authenticated
     useEffect(() => {
@@ -76,7 +83,7 @@ const Login = () => {
 
         try {
             // Validate form
-            const newErrors: any = {};
+            const newErrors: Record<string, string> = {};
             if (!formData.email) newErrors.email = 'Email is required';
             if (!formData.password) newErrors.password = 'Password is required';
 
@@ -102,7 +109,7 @@ const Login = () => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) {
-            setErrors((prev: any) => ({ ...prev, [name]: '' }));
+            setErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
 

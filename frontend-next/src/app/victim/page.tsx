@@ -27,8 +27,8 @@ import Button from '@/components/UI/Button';
 import Modal from '@/components/UI/Modal';
 import LoadingSpinner from '@/components/UI/LoadingSpinner';
 import Layout from '@/components/Layout/Layout';
-
-import GuestWelcome from '@/components/Auth/GuestWelcome';
+import RoleGuard from '@/components/Auth/RoleGuard';
+import DashboardLayout from '@/components/Layout/DashboardLayout';
 
 interface VictimProfile {
     fullName: string;
@@ -99,6 +99,20 @@ interface RequestHistoryItem {
     amount: number;
 }
 
+interface VictimDocument {
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+}
+
+interface FamilyMember {
+    id: string;
+    name: string;
+    relation: string;
+    age: number;
+}
+
 const VictimPortal = () => {
     const { isConnected, account } = useWeb3Store();
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -123,7 +137,7 @@ const VictimPortal = () => {
         disasterType: '',
         urgency: 'medium',
         description: '',
-        documents: [] as any[],
+        documents: [] as VictimDocument[],
         emergencyContact: '',
         medicalConditions: '',
         specialNeeds: '',
@@ -143,10 +157,10 @@ const VictimPortal = () => {
         deliveryAddress: '',
         requestDate: '',
         recurringSchedule: '',
-        documents: [] as any[],
-        photos: [] as any[],
+        documents: [] as VictimDocument[],
+        photos: [] as VictimDocument[],
         location: null as { lat: number, lng: number } | null,
-        familyMembers: [] as any[],
+        familyMembers: [] as FamilyMember[],
         medicalNeeds: '',
         accessibilityNeeds: '',
         alternateContact: '',
@@ -271,8 +285,9 @@ const VictimPortal = () => {
             const location = { lat: position.coords.latitude, lng: position.coords.longitude };
             toast.success('Location obtained successfully');
             return location;
-        } catch (error: any) {
-            toast.error('Unable to get location: ' + error.message);
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Unknown error';
+            toast.error('Unable to get location: ' + msg);
             return null;
         } finally {
             setLocationLoading(false);
@@ -352,402 +367,381 @@ const VictimPortal = () => {
         }
     };
 
-    if (!isConnected) {
-        return (
-            <Layout>
-                <GuestWelcome
-                    title="Victim Assistance Portal"
-                    subtitle="Connect your wallet to request aid, manage vouchers, and find nearby assistance."
-                />
-            </Layout>
-        );
-    }
-
-    if (!profile) {
-        return (
-            <Layout>
-                <div className="flex items-center justify-center min-h-screen">
-                    <Card className="max-w-md p-8 text-center mx-auto">
-                        <User className="w-16 h-16 mx-auto mb-4 text-blue-400" />
-                        <h2 className="mb-2 text-xl font-semibold text-gray-900">Registration Required</h2>
-                        <p className="mb-8 text-gray-600">You need to register correctly to access assistance services.</p>
-                        <Button onClick={() => setShowRegistrationModal(true)} className="w-full">
-                            Register Now
-                        </Button>
-                    </Card>
-                    <Modal isOpen={showRegistrationModal} onClose={() => setShowRegistrationModal(false)} title="Victim Registration">
-                        <form onSubmit={handleRegistration} className="space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Full Name"
-                                className="w-full p-2 border rounded"
-                                onChange={e => setRegistrationData({ ...registrationData, fullName: e.target.value })}
-                                required
-                            />
-                            <Button type="submit" loading={loading} className="w-full">Submit</Button>
-                        </form>
-                    </Modal>
-                </div>
-            </Layout>
-        );
-    }
+    // If not connected, RoleGuard (added below) wraps this, so this check will technically be redundant but we can keep it for double safety if we weren't using RoleGuard.
+    // However, we want to replace the manual pattern with RoleGuard for consistency.
+    // Note: Victim portal is a bit unique - it might allow access to anyone to *register*, so role check 'victim' might be too strict if they are new.
+    // But RoleGuard 'victim' implies they MUST have that role.
+    // The previous code showed "Registration Required" if connected but no profile.
+    // We should probably use RoleGuard with requiredRole="victim" but if the user is just a 'user' (connected but no specific role), they can't see this page?
+    // Actually, 'victim' role is assigned AFTER registration.
+    // So for Victim portal, we might just want `checkConnection` but not strict `victim` role if they need to register here.
+    // HOWEVER, typical flow: Register Page -> assign role -> Redirect to Dashboard.
+    // So if they are here, they should have the role.
+    // If they don't have the role, RoleGuard shows "Access Denied".
+    // Let's assume registration happens elsewhere (like /register) or RoleGuard handles redirection.
+    // Looking at `register/page.tsx`, it handles role assignment.
+    // So strict `victim` role check is correct here.
 
     return (
-        <Layout>
-            <div className="min-h-screen">
-                <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Victim Portal</h1>
-                            <p className="text-gray-600">Access disaster relief assistance and manage your aid</p>
-                        </div>
-                        <div className="flex space-x-4">
-                            <Button
-                                onClick={() => setShowEmergencyModal(true)}
-                                variant="danger"
-                                icon={AlertTriangle}
-                            >
-                                Emergency
-                            </Button>
-                            <Button
-                                onClick={() => setShowAidRequestModal(true)}
-                                icon={Heart}
-                            >
-                                Request Aid
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Profile Overview */}
-                    <Card className="p-6 mb-8">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div className="flex items-center space-x-4">
-                                <div className="p-3 bg-red-100 rounded-full">
-                                    <User className="w-8 h-8 text-red-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                                        {profile.fullName}
-                                        <CheckCircle className="w-5 h-5 ml-2 text-green-500" />
-                                    </h2>
-                                    <p className="text-gray-500 text-sm">{profile.address}</p>
-                                </div>
+        <RoleGuard requiredRole="victim" title="Victim Assistance Portal" subtitle="Access disaster relief assistance and manage your aid.">
+            <DashboardLayout fullWidth={true}>
+                <div className="min-h-screen">
+                    <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                        {/* Header */}
+                        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900">Victim Portal</h1>
+                                <p className="text-gray-600">Access disaster relief assistance and manage your aid</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-8 text-center">
-                                <div>
-                                    <p className="text-2xl font-bold text-gray-900">{profile.applications}</p>
-                                    <p className="text-xs text-gray-500">Applications</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-green-600">${profile.totalAidReceived}</p>
-                                    <p className="text-xs text-gray-500">Aid Received</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-blue-600">{profile.activeVouchers}</p>
-                                    <p className="text-xs text-gray-500">Vouchers</p>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-
-                    {/* Tab Navigation */}
-                    <div className="mb-6 border-b border-gray-200">
-                        <nav className="flex -mb-px space-x-8">
-                            {[
-                                { id: 'dashboard', label: 'Dashboard', icon: Heart },
-                                { id: 'vouchers', label: 'Vouchers', icon: CreditCard },
-                                { id: 'applications', label: 'Applications', icon: FileText },
-                                { id: 'nearby', label: 'Nearby Help', icon: MapPin },
-                                { id: 'emergency', label: 'Emergency', icon: AlertTriangle }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${activeTab === tab.id
-                                        ? 'border-red-500 text-red-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                        }`}
+                            <div className="flex space-x-4">
+                                <Button
+                                    onClick={() => setShowEmergencyModal(true)}
+                                    variant="danger"
+                                    icon={AlertTriangle}
                                 >
-                                    <tab.icon className="w-4 h-4 mr-2" />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </nav>
-                    </div>
+                                    Emergency
+                                </Button>
+                                <Button
+                                    onClick={() => setShowAidRequestModal(true)}
+                                    icon={Heart}
+                                >
+                                    Request Aid
+                                </Button>
+                            </div>
+                        </div>
 
-                    {/* Tab Content */}
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'dashboard' && (
-                            <motion.div
-                                key="dashboard"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                            >
-                                <Card className="p-6">
-                                    <h3 className="text-lg font-semibold mb-4 flex items-center">
-                                        <Activity className="w-5 h-5 mr-1 text-red-500" /> Recent Activity
-                                    </h3>
-                                    <div className="space-y-4">
-                                        {applications.length > 0 ? applications.map(app => (
-                                            <div key={app.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                                <div>
-                                                    <p className="font-medium text-gray-900">{app.type}</p>
-                                                    <p className="text-xs text-gray-500">{app.submittedAt}</p>
-                                                </div>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${app.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                                    app.status === 'under_review' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-yellow-100 text-yellow-700'
-                                                    }`}>
-                                                    {app.status.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                        )) : (
-                                            <div className="text-center py-8 text-gray-500">No recent activity</div>
-                                        )}
-                                    </div>
-                                </Card>
-
-                                <Card className="p-6">
-                                    <h3 className="text-lg font-semibold mb-4 flex items-center">
-                                        <TrendingUp className="w-5 h-5 mr-1 text-green-500" /> Aid Statistics
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-blue-50 rounded-lg text-center">
-                                            <p className="text-2xl font-bold text-blue-600">{requestHistory.length}</p>
-                                            <p className="text-xs text-blue-700 font-medium">Total Requests</p>
+                        {/* Profile Overview */}
+                        {profile && (
+                            <Card className="p-6 mb-8">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="p-3 bg-red-100 rounded-full">
+                                            <User className="w-8 h-8 text-red-600" />
                                         </div>
-                                        <div className="p-4 bg-green-50 rounded-lg text-center">
+                                        <div>
+                                            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                                                {profile.fullName}
+                                                <CheckCircle className="w-5 h-5 ml-2 text-green-500" />
+                                            </h2>
+                                            <p className="text-gray-500 text-sm">{profile.address}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-8 text-center">
+                                        <div>
+                                            <p className="text-2xl font-bold text-gray-900">{profile.applications}</p>
+                                            <p className="text-xs text-gray-500">Applications</p>
+                                        </div>
+                                        <div>
                                             <p className="text-2xl font-bold text-green-600">${profile.totalAidReceived}</p>
-                                            <p className="text-xs text-green-700 font-medium">Total Value</p>
+                                            <p className="text-xs text-gray-500">Aid Received</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold text-blue-600">{profile.activeVouchers}</p>
+                                            <p className="text-xs text-gray-500">Vouchers</p>
                                         </div>
                                     </div>
-                                    <div className="mt-6 p-4 border border-gray-100 rounded-lg">
-                                        <p className="text-sm text-gray-600 mb-2">Verification Progress</p>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-2">Level 3 Verification Complete</p>
-                                    </div>
-                                </Card>
-                            </motion.div>
+                                </div>
+                            </Card>
                         )}
 
-                        {activeTab === 'vouchers' && (
-                            <motion.div
-                                key="vouchers"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                            >
-                                {vouchers.map(voucher => (
-                                    <Card key={voucher.id} className="p-6 border-t-4 border-red-500 shadow-md">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900">{voucher.id}</h4>
-                                                <p className="text-xs text-gray-500 mt-1 uppercase font-semibold">{voucher.type} Assistance</p>
-                                            </div>
-                                            <span className="px-2 py-1 bg-green-100 text-green-800 text-[10px] font-bold rounded-full">ACTIVE</span>
-                                        </div>
-                                        <div className="text-center mb-6">
-                                            <p className="text-4xl font-black text-gray-900">${voucher.amount}</p>
-                                            <p className="text-xs text-gray-400 mt-1">Available Balance</p>
-                                        </div>
-                                        <div className="bg-white p-3 border rounded-xl mb-4">
-                                            <img src={voucher.qrCode} alt="QR" className="w-32 h-32 mx-auto" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Button variant="primary" className="w-full text-sm">Download Receipt</Button>
-                                            <p className="text-[10px] text-gray-400 text-center uppercase tracking-tighter">Valid until {voucher.expiresAt}</p>
+                        {/* Tab Navigation */}
+                        <div className="mb-6 border-b border-gray-200">
+                            <nav className="flex -mb-px space-x-8">
+                                {[
+                                    { id: 'dashboard', label: 'Dashboard', icon: Heart },
+                                    { id: 'vouchers', label: 'Vouchers', icon: CreditCard },
+                                    { id: 'applications', label: 'Applications', icon: FileText },
+                                    { id: 'nearby', label: 'Nearby Help', icon: MapPin },
+                                    { id: 'emergency', label: 'Emergency', icon: AlertTriangle }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${activeTab === tab.id
+                                            ? 'border-red-500 text-red-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        <tab.icon className="w-4 h-4 mr-2" />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+
+                        {/* Tab Content */}
+                        <AnimatePresence mode="wait">
+                            {activeTab === 'dashboard' && (
+                                <motion.div
+                                    key="dashboard"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                                >
+                                    <Card className="p-6">
+                                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                                            <Activity className="w-5 h-5 mr-1 text-red-500" /> Recent Activity
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {applications.length > 0 ? applications.map(app => (
+                                                <div key={app.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">{app.type}</p>
+                                                        <p className="text-xs text-gray-500">{app.submittedAt}</p>
+                                                    </div>
+                                                    <span className={`text-xs px-2 py-1 rounded-full ${app.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                        app.status === 'under_review' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                        {app.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                            )) : (
+                                                <div className="text-center py-8 text-gray-500">No recent activity</div>
+                                            )}
                                         </div>
                                     </Card>
-                                ))}
-                            </motion.div>
-                        )}
 
-                        {activeTab === 'applications' && (
-                            <motion.div
-                                key="applications"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-4"
-                            >
-                                {applications.map(app => (
-                                    <Card key={app.id} className="p-5 hover:border-red-200 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex space-x-4">
-                                                <div className="p-3 bg-gray-50 rounded-lg">
-                                                    <FileText className="w-6 h-6 text-gray-400" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900">{app.id}</h4>
-                                                    <p className="text-sm font-medium text-gray-700">{app.type}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">{app.description}</p>
-                                                </div>
+                                    <Card className="p-6">
+                                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                                            <TrendingUp className="w-5 h-5 mr-1 text-green-500" /> Aid Statistics
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-4 bg-blue-50 rounded-lg text-center">
+                                                <p className="text-2xl font-bold text-blue-600">{requestHistory.length}</p>
+                                                <p className="text-xs text-blue-700 font-medium">Total Requests</p>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold text-gray-900">${app.amount}</p>
-                                                <span className={`text-[10px] font-bold uppercase tracking-widest ${app.status === 'approved' ? 'text-green-600' : 'text-blue-600'
-                                                    }`}>{app.status.replace('_', ' ')}</span>
+                                            <div className="p-4 bg-green-50 rounded-lg text-center">
+                                                <p className="text-2xl font-bold text-green-600">${profile?.totalAidReceived || 0}</p>
+                                                <p className="text-xs text-green-700 font-medium">Total Value</p>
                                             </div>
                                         </div>
+                                        <div className="mt-6 p-4 border border-gray-100 rounded-lg">
+                                            <p className="text-sm text-gray-600 mb-2">Verification Progress</p>
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">Level 3 Verification Complete</p>
+                                        </div>
                                     </Card>
-                                ))}
-                            </motion.div>
-                        )}
+                                </motion.div>
+                            )}
 
-                        {activeTab === 'nearby' && (
-                            <motion.div
-                                key="nearby"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-6"
-                            >
-                                <Card className="p-4 bg-blue-50 border-blue-100 flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <Navigation className="w-5 h-5 text-blue-600 mr-3" />
-                                        <p className="text-sm text-blue-900 font-medium">Auto-detecting resources based on your location</p>
-                                    </div>
-                                    <Button size="sm" variant="outline" onClick={getCurrentLocation} loading={locationLoading}>Update Location</Button>
-                                </Card>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {nearbyVendors.map(vendor => (
-                                        <Card key={vendor.id} className="p-6">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="p-2 bg-red-100 rounded-full text-red-600">
-                                                    <Building2 className="w-5 h-5" />
-                                                </div>
+                            {activeTab === 'vouchers' && (
+                                <motion.div
+                                    key="vouchers"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                                >
+                                    {vouchers.map(voucher => (
+                                        <Card key={voucher.id} className="p-6 border-t-4 border-red-500 shadow-md">
+                                            <div className="flex justify-between items-start mb-4">
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900">{vendor.name}</h4>
-                                                    <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded uppercase">{vendor.type}</span>
+                                                    <h4 className="font-bold text-gray-900">{voucher.id}</h4>
+                                                    <p className="text-xs text-gray-500 mt-1 uppercase font-semibold">{voucher.type} Assistance</p>
                                                 </div>
+                                                <span className="px-2 py-1 bg-green-100 text-green-800 text-[10px] font-bold rounded-full">ACTIVE</span>
                                             </div>
-                                            <div className="space-y-2 mb-6">
-                                                <p className="text-xs text-gray-600 flex items-center">
-                                                    <MapPin className="w-3 h-3 mr-2" /> {vendor.address}
-                                                </p>
-                                                <p className="text-xs text-gray-600 flex items-center">
-                                                    <Phone className="w-3 h-3 mr-2" /> {vendor.phone}
-                                                </p>
-                                                <p className="text-xs text-gray-600 flex items-center">
-                                                    <Clock className="w-3 h-3 mr-2" /> {vendor.hours}
-                                                </p>
+                                            <div className="text-center mb-6">
+                                                <p className="text-4xl font-black text-gray-900">${voucher.amount}</p>
+                                                <p className="text-xs text-gray-400 mt-1">Available Balance</p>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <Button size="sm" className="flex-1">Call</Button>
-                                                <Button size="sm" variant="outline" className="flex-1">Directions</Button>
+                                            <div className="bg-white p-3 border rounded-xl mb-4">
+                                                <img src={voucher.qrCode} alt="QR" className="w-32 h-32 mx-auto" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Button variant="primary" className="w-full text-sm">Download Receipt</Button>
+                                                <p className="text-[10px] text-gray-400 text-center uppercase tracking-tighter">Valid until {voucher.expiresAt}</p>
                                             </div>
                                         </Card>
                                     ))}
-                                </div>
-                            </motion.div>
-                        )}
+                                </motion.div>
+                            )}
 
-                        {activeTab === 'emergency' && (
-                            <motion.div
-                                key="emergency"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="space-y-6"
-                            >
-                                <Card className="p-8 bg-red-600 text-white border-0 shadow-xl overflow-hidden relative">
-                                    <div className="relative z-10">
-                                        <div className="flex items-center mb-4">
-                                            <AlertTriangle className="w-8 h-8 mr-3 animate-pulse" />
-                                            <h3 className="text-2xl font-black uppercase tracking-tighter">Emergency Hub</h3>
+                            {activeTab === 'applications' && (
+                                <motion.div
+                                    key="applications"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="space-y-4"
+                                >
+                                    {applications.map(app => (
+                                        <Card key={app.id} className="p-5 hover:border-red-200 transition-colors">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex space-x-4">
+                                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                                        <FileText className="w-6 h-6 text-gray-400" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900">{app.id}</h4>
+                                                        <p className="text-sm font-medium text-gray-700">{app.type}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">{app.description}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-lg font-bold text-gray-900">${app.amount}</p>
+                                                    <span className={`text-[10px] font-bold uppercase tracking-widest ${app.status === 'approved' ? 'text-green-600' : 'text-blue-600'
+                                                        }`}>{app.status.replace('_', ' ')}</span>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </motion.div>
+                            )}
+
+                            {activeTab === 'nearby' && (
+                                <motion.div
+                                    key="nearby"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="space-y-6"
+                                >
+                                    <Card className="p-4 bg-blue-50 border-blue-100 flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <Navigation className="w-5 h-5 text-blue-600 mr-3" />
+                                            <p className="text-sm text-blue-900 font-medium">Auto-detecting resources based on your location</p>
                                         </div>
-                                        <p className="text-red-100 mb-8 max-w-xl">
-                                            If you are in immediate danger, call <strong>911</strong> immediately. This portal dispatch notifies
-                                            local relief teams and updates your status on the blockchain for priority response.
-                                        </p>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                            {emergencyContacts.map((c, i) => (
-                                                <a key={i} href={`tel:${c.number}`} className="p-4 bg-red-700/50 hover:bg-red-700 transition-colors rounded-xl border border-red-500/50 block">
-                                                    <p className="text-[10px] text-red-200 uppercase font-black mb-1">{c.name}</p>
-                                                    <p className="text-lg font-bold">{c.number}</p>
-                                                </a>
-                                            ))}
-                                        </div>
-                                        <div className="mt-8">
-                                            <Button variant="outline" onClick={() => setShowEmergencyModal(true)} className="bg-white text-red-600 border-0 px-8 py-3 h-auto font-bold uppercase tracking-widest text-xs">
-                                                Dispatch Rescue Team
-                                            </Button>
-                                        </div>
+                                        <Button size="sm" variant="outline" onClick={getCurrentLocation} loading={locationLoading}>Update Location</Button>
+                                    </Card>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {nearbyVendors.map(vendor => (
+                                            <Card key={vendor.id} className="p-6">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="p-2 bg-red-100 rounded-full text-red-600">
+                                                        <Building2 className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900">{vendor.name}</h4>
+                                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded uppercase">{vendor.type}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2 mb-6">
+                                                    <p className="text-xs text-gray-600 flex items-center">
+                                                        <MapPin className="w-3 h-3 mr-2" /> {vendor.address}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 flex items-center">
+                                                        <Phone className="w-3 h-3 mr-2" /> {vendor.phone}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 flex items-center">
+                                                        <Clock className="w-3 h-3 mr-2" /> {vendor.hours}
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" className="flex-1">Call</Button>
+                                                    <Button size="sm" variant="outline" className="flex-1">Directions</Button>
+                                                </div>
+                                            </Card>
+                                        ))}
                                     </div>
-                                    <AlertTriangle className="absolute top-0 right-0 w-64 h-64 text-red-500 opacity-20 transform translate-x-1/4 -translate-y-1/4" />
-                                </Card>
+                                </motion.div>
+                            )}
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Card className="p-6">
-                                        <h4 className="font-bold text-gray-900 mb-4 flex items-center">
-                                            <Shield className="w-5 h-5 mr-2 text-blue-500" /> Safety Protocols
-                                        </h4>
-                                        <ul className="space-y-3 text-sm text-gray-600">
-                                            <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5" /> Stay away from downed lines</li>
-                                            <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5" /> Move to higher ground if flooding is reported</li>
-                                            <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5" /> Keep emergency documents in waterproof bags</li>
-                                        </ul>
+                            {activeTab === 'emergency' && (
+                                <motion.div
+                                    key="emergency"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="space-y-6"
+                                >
+                                    <Card className="p-8 bg-red-600 text-white border-0 shadow-xl overflow-hidden relative">
+                                        <div className="relative z-10">
+                                            <div className="flex items-center mb-4">
+                                                <AlertTriangle className="w-8 h-8 mr-3 animate-pulse" />
+                                                <h3 className="text-2xl font-black uppercase tracking-tighter">Emergency Hub</h3>
+                                            </div>
+                                            <p className="text-red-100 mb-8 max-w-xl">
+                                                If you are in immediate danger, call <strong>911</strong> immediately. This portal dispatch notifies
+                                                local relief teams and updates your status on the blockchain for priority response.
+                                            </p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                {emergencyContacts.map((c, i) => (
+                                                    <a key={i} href={`tel:${c.number}`} className="p-4 bg-red-700/50 hover:bg-red-700 transition-colors rounded-xl border border-red-500/50 block">
+                                                        <p className="text-[10px] text-red-200 uppercase font-black mb-1">{c.name}</p>
+                                                        <p className="text-lg font-bold">{c.number}</p>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                            <div className="mt-8">
+                                                <Button variant="outline" onClick={() => setShowEmergencyModal(true)} className="bg-white text-red-600 border-0 px-8 py-3 h-auto font-bold uppercase tracking-widest text-xs">
+                                                    Dispatch Rescue Team
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <AlertTriangle className="absolute top-0 right-0 w-64 h-64 text-red-500 opacity-20 transform translate-x-1/4 -translate-y-1/4" />
                                     </Card>
-                                    <Card className="p-6">
-                                        <h4 className="font-bold text-gray-900 mb-4 flex items-center">
-                                            <MessageSquare className="w-5 h-5 mr-2 text-purple-500" /> Crisis Support
-                                        </h4>
-                                        <p className="text-sm text-gray-600 mb-4">Chat with a licensed mental health professional specialized in disaster recovery.</p>
-                                        <Button size="sm" variant="outline" className="w-full">Start Chat</Button>
-                                    </Card>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <Card className="p-6">
+                                            <h4 className="font-bold text-gray-900 mb-4 flex items-center">
+                                                <Shield className="w-5 h-5 mr-2 text-blue-500" /> Safety Protocols
+                                            </h4>
+                                            <ul className="space-y-3 text-sm text-gray-600">
+                                                <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5" /> Stay away from downed lines</li>
+                                                <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5" /> Move to higher ground if flooding is reported</li>
+                                                <li className="flex items-start"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5" /> Keep emergency documents in waterproof bags</li>
+                                            </ul>
+                                        </Card>
+                                        <Card className="p-6">
+                                            <h4 className="font-bold text-gray-900 mb-4 flex items-center">
+                                                <MessageSquare className="w-5 h-5 mr-2 text-purple-500" /> Crisis Support
+                                            </h4>
+                                            <p className="text-sm text-gray-600 mb-4">Chat with a licensed mental health professional specialized in disaster recovery.</p>
+                                            <Button size="sm" variant="outline" className="w-full">Start Chat</Button>
+                                        </Card>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Modals */}
+                    <Modal isOpen={showAidRequestModal} onClose={() => setShowAidRequestModal(false)} title="Request Assistance">
+                        <form onSubmit={handleAidRequest} className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g., Emergency food for family of 4"
+                                    className="w-full p-2 border rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500"
+                                    onChange={e => setAidRequest({ ...aidRequest, description: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Amount Needed ($)</label>
+                                <input
+                                    type="number"
+                                    placeholder="100.00"
+                                    className="w-full p-2 border rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500"
+                                    onChange={e => setAidRequest({ ...aidRequest, amount: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <Button type="submit" loading={loading} className="w-full">Submit Request</Button>
+                        </form>
+                    </Modal>
+
+                    <Modal isOpen={showEmergencyModal} onClose={() => setShowEmergencyModal(false)} title="Report Emergency">
+                        <form onSubmit={handleEmergencyRequest} className="space-y-4">
+                            <textarea
+                                placeholder="Emergency details..."
+                                className="w-full p-2 border rounded bg-white text-gray-900"
+                                rows={4}
+                                required
+                            />
+                            <Button type="submit" loading={loading} variant="danger" className="w-full">Send Alert</Button>
+                        </form>
+                    </Modal>
                 </div>
-
-                {/* Modals */}
-                <Modal isOpen={showAidRequestModal} onClose={() => setShowAidRequestModal(false)} title="Request Assistance">
-                    <form onSubmit={handleAidRequest} className="space-y-4">
-                        <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
-                            <input
-                                type="text"
-                                placeholder="e.g., Emergency food for family of 4"
-                                className="w-full p-2 border rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500"
-                                onChange={e => setAidRequest({ ...aidRequest, description: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase">Amount Needed ($)</label>
-                            <input
-                                type="number"
-                                placeholder="100.00"
-                                className="w-full p-2 border rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500"
-                                onChange={e => setAidRequest({ ...aidRequest, amount: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <Button type="submit" loading={loading} className="w-full">Submit Request</Button>
-                    </form>
-                </Modal>
-
-                <Modal isOpen={showEmergencyModal} onClose={() => setShowEmergencyModal(false)} title="Report Emergency">
-                    <form onSubmit={handleEmergencyRequest} className="space-y-4">
-                        <textarea
-                            placeholder="Emergency details..."
-                            className="w-full p-2 border rounded bg-white text-gray-900"
-                            rows={4}
-                            required
-                        />
-                        <Button type="submit" loading={loading} variant="danger" className="w-full">Send Alert</Button>
-                    </form>
-                </Modal>
-            </div>
-        </Layout>
+            </DashboardLayout>
+        </RoleGuard>
     );
 };
 

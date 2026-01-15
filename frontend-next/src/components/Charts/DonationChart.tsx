@@ -7,6 +7,7 @@ const DonationChart = ({ timeRange = '7d' }) => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [totalDonations, setTotalDonations] = useState(0);
   const [percentageChange, setPercentageChange] = useState(0);
+  const [growthRate, setGrowthRate] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +43,9 @@ const DonationChart = ({ timeRange = '7d' }) => {
 
     setChartData(data);
     setTotalDonations(total);
+    setTotalDonations(total);
     setPercentageChange((Math.random() * 30 - 10)); // Random percentage change
+    setGrowthRate(Math.floor(Math.random() * 50 + 20)); // Generate growth rate once
     setLoading(false);
   };
 
@@ -112,7 +115,7 @@ const DonationChart = ({ timeRange = '7d' }) => {
         </div>
         <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
           <div className="text-2xl font-black text-avalanche-500 mb-0.5">
-            +{Math.floor(Math.random() * 50 + 20)}%
+            +{growthRate}%
           </div>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Growth Rate</div>
         </div>

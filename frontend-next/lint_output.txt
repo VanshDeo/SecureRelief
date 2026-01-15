@@ -1,0 +1,114 @@
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx
+   22:20  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:22:20
+  20 |   const mockEvents = useMemo(() => [
+  21 |     {
+> 22 |       id: 'evt-' + Date.now(),
+     |                    ^^^^^^^^^^ Cannot call impure function
+  23 |       type: 'VoucherIssued',
+  24 |       timestamp: new Date(),
+  25 |       data: {                                                                                                react-hooks/purity
+   36:21  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:36:21
+  34 |     },
+  35 |     {
+> 36 |       id: 'evt-' + (Date.now() + 1),
+     |                     ^^^^^^^^^^ Cannot call impure function
+  37 |       type: 'VoucherRedeemed',
+  38 |       timestamp: new Date(Date.now() - 5 * 60 * 1000),
+  39 |       data: {                                                                                           react-hooks/purity
+   38:27  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:38:27
+  36 |       id: 'evt-' + (Date.now() + 1),
+  37 |       type: 'VoucherRedeemed',
+> 38 |       timestamp: new Date(Date.now() - 5 * 60 * 1000),
+     |                           ^^^^^^^^^^ Cannot call impure function
+  39 |       data: {
+  40 |         vendor: '0x8ba1f109551bD432803012645Hac136c5e8a3e8',
+  41 |         amount: 89.75,              react-hooks/purity
+   50:21  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:50:21
+  48 |     },
+  49 |     {
+> 50 |       id: 'evt-' + (Date.now() + 2),
+     |                     ^^^^^^^^^^ Cannot call impure function
+  51 |       type: 'DisasterDeclared',
+  52 |       timestamp: new Date(Date.now() - 15 * 60 * 1000),
+  53 |       data: {                                                                                         react-hooks/purity
+   52:27  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:52:27
+  50 |       id: 'evt-' + (Date.now() + 2),
+  51 |       type: 'DisasterDeclared',
+> 52 |       timestamp: new Date(Date.now() - 15 * 60 * 1000),
+     |                           ^^^^^^^^^^ Cannot call impure function
+  53 |       data: {
+  54 |         disasterId: 'DIS-001',
+  55 |         name: 'Hurricane Florence',                             react-hooks/purity
+   64:21  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:64:21
+  62 |     },
+  63 |     {
+> 64 |       id: 'evt-' + (Date.now() + 3),
+     |                     ^^^^^^^^^^ Cannot call impure function
+  65 |       type: 'VendorVerified',
+  66 |       timestamp: new Date(Date.now() - 30 * 60 * 1000),
+  67 |       data: {                                                                                           react-hooks/purity
+   66:27  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:66:27
+  64 |       id: 'evt-' + (Date.now() + 3),
+  65 |       type: 'VendorVerified',
+> 66 |       timestamp: new Date(Date.now() - 30 * 60 * 1000),
+     |                           ^^^^^^^^^^ Cannot call impure function
+  67 |       data: {
+  68 |         vendor: '0x9cb2f109551bD432803012645Hac136c5e8a3e9',
+  69 |         name: 'Relief Supply Co.',  react-hooks/purity
+   77:21  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:77:21
+  75 |     },
+  76 |     {
+> 77 |       id: 'evt-' + (Date.now() + 4),
+     |                     ^^^^^^^^^^ Cannot call impure function
+  78 |       type: 'BulkPayout',
+  79 |       timestamp: new Date(Date.now() - 45 * 60 * 1000),
+  80 |       data: {                                                                                               react-hooks/purity
+   79:27  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+D:\Projects\SecureRelief\frontend-next\src\components\DisasterRelief\ContractEventMonitor.tsx:79:27
+  77 |       id: 'evt-' + (Date.now() + 4),
+  78 |       type: 'BulkPayout',
+> 79 |       timestamp: new Date(Date.now() - 45 * 60 * 1000),
+     |                           ^^^^^^^^^^ Cannot call impure function
+  80 |       data: {
+  81 |         totalAmount: 45850.00,
+  82 |         recipientCount: 12,                                           react-hooks/purity
+  122:6   warning  React Hook useEffect has a missing dependency: 'mockEvents'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+
+Γ£û 10 problems (9 errors, 1 warning)
+

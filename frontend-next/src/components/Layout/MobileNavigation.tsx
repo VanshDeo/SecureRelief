@@ -15,12 +15,12 @@ import {
   Database,
   Building
 } from 'lucide-react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useWeb3Store } from '../../store/web3Store'
 import RoleGuard from '../Auth/RoleGuard'
 
 const MobileNavigation = () => {
   const pathname = usePathname()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user } = useWeb3Store()
 
   const getNavigationItems = () => {
     const items = [

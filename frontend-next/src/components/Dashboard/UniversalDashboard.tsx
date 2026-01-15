@@ -11,11 +11,11 @@ import {
   Clock,
   Activity
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useWeb3Store } from '../../store/web3Store';
 import RoleGuard from '../Auth/RoleGuard';
 
 const UniversalDashboard = () => {
-  const { user, hasPermission, hasRole } = useAuth();
+  const { user, hasPermission, hasRole } = useWeb3Store();
 
   const getWelcomeMessage = () => {
     const greetings = {

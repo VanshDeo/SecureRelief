@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
-  Zap,
   CreditCard,
   Users,
   AlertCircle,
   CheckCircle,
-  Clock,
   DollarSign,
   ArrowUpRight,
-  ArrowDownLeft,
   Wifi,
   Eye,
-  Filter,
   Pause,
   Play
 } from 'lucide-react';
@@ -22,15 +18,14 @@ import Button from '../UI/Button';
 
 const ContractEventMonitor = ({ className = '' }) => {
   const [events, setEvents] = useState([]);
+  const mockEventsRef = useRef([]);
   const [isListening, setIsListening] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [connectionStatus, setConnectionStatus] = useState('connected');
+  const [connectionStatus] = useState('connected');
 
-  // Mock contract events
+  // Initialize mock events on mount
   useEffect(() => {
-    if (!isListening) return;
-
-    const mockEvents = [
+    mockEventsRef.current = [
       {
         id: 'evt-' + Date.now(),
         type: 'VoucherIssued',
@@ -101,6 +96,15 @@ const ContractEventMonitor = ({ className = '' }) => {
         status: 'pending'
       }
     ];
+    setEvents(mockEventsRef.current);
+  }, []);
+
+  // Mock contract events
+  useEffect(() => {
+    if (!isListening) return;
+
+    const mockEvents = mockEventsRef.current;
+    if (mockEvents.length === 0) return;
 
     const randomEvent = mockEvents[Math.floor(Math.random() * mockEvents.length)];
 
@@ -116,9 +120,6 @@ const ContractEventMonitor = ({ className = '' }) => {
         setEvents(prev => [newEvent, ...prev.slice(0, 19)]); // Keep last 20 events
       }
     }, 3000); // Check every 3 seconds
-
-    // Initial events
-    setEvents(mockEvents);
 
     return () => clearInterval(interval);
   }, [isListening]);
@@ -315,8 +316,8 @@ const ContractEventMonitor = ({ className = '' }) => {
                             {event.type.replace(/([A-Z])/g, ' $1').trim()}
                           </span>
                           <span className={`px-1.5 py-0.5 text-xs rounded-full ${event.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                              event.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
+                            event.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
                             }`}>
                             {event.status}
                           </span>

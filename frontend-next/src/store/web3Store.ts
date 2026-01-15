@@ -2,6 +2,69 @@ import { create } from 'zustand'
 import { ethers } from 'ethers'
 import toast from 'react-hot-toast'
 import { DisasterReliefContractService } from '../services/contractService'
+import apiService from '../services/apiService'
+import { handleError, showSuccess } from '../utils/errorHandler'
+
+// Role Permissions Constant
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  admin: [
+    'manage:all',
+    'view:all',
+    'disaster:create',
+    'disaster:update',
+    'disaster:delete',
+    'vendor:approve',
+    'vendor:reject',
+    'user:manage',
+    'analytics:full',
+    'system:configure'
+  ],
+  government: [
+    'disaster:create',
+    'disaster:update',
+    'disaster:verify',
+    'vendor:approve',
+    'analytics:view',
+    'reports:generate'
+  ],
+  treasury: [
+    'funds:manage',
+    'treasury:view',
+    'treasury:allocate',
+    'analytics:financial'
+  ],
+  oracle: [
+    'data:verify',
+    'price:update',
+    'validation:perform'
+  ],
+  vendor: [
+    'voucher:redeem',
+    'inventory:manage',
+    'transaction:process',
+    'profile:update',
+    'analytics:vendor'
+  ],
+  victim: [
+    'voucher:claim',
+    'aid:request',
+    'profile:update',
+    'donation:track'
+  ],
+  donor: [
+    'donation:make',
+    'impact:track',
+    'profile:update',
+    'analytics:donation'
+  ],
+  guest: [
+    'public:view',
+    'donation:make',
+    'transparency:view',
+    'disaster:view',
+    'proof:view'
+  ]
+};
 
 // Avalanche network configuration with fallback RPC URLs
 const AVALANCHE_CONFIG = {
@@ -75,9 +138,17 @@ interface Web3Store {
   contractService: DisasterReliefContractService | null;
 
   // User role and permissions
+  // User role and permissions
+  user: any; // Ideally this should be a typed User interface
   userRole: string | null;
   permissions: string[];
   roleHierarchy: Record<string, number>;
+  rolePermissions: Record<string, string[]>;
+
+  // Auth State
+  isAuthenticated: boolean;
+  isLoadingAuth: boolean;
+  authMethod: string | null;
 
   // Contract data
   disasterZones: any[];
@@ -101,6 +172,19 @@ interface Web3Store {
   redeemVoucher: (voucherId: number, amountUSDC: string | number, category: number, ipfsHash: string) => Promise<any>;
   useFaucet: () => Promise<any>;
   transferUSDC: (to: string, amountUSDC: string | number) => Promise<any>;
+  setUserRole: (role: string) => void;
+
+  // Auth Actions
+  login: (credentials: any) => Promise<any>;
+  logout: () => Promise<void>;
+  register: (registrationData: any) => Promise<any>;
+  updateProfile: (updates: any) => Promise<any>;
+  initializeAuth: () => Promise<void>;
+
+  // Access Control
+  hasRole: (role: string) => boolean;
+  hasPermission: (permission: string) => boolean;
+  can: (action: string) => boolean;
 }
 
 export const useWeb3Store = create<Web3Store>((set, get) => ({
@@ -131,6 +215,13 @@ export const useWeb3Store = create<Web3Store>((set, get) => ({
     donor: 3,
     guest: 1
   },
+  rolePermissions: ROLE_PERMISSIONS,
+
+  // Auth State
+  user: null,
+  isAuthenticated: false,
+  isLoadingAuth: true,
+  authMethod: null,
 
   // Contract data
   disasterZones: [],
@@ -494,10 +585,36 @@ export const useWeb3Store = create<Web3Store>((set, get) => ({
         ]
       }
 
-      // FOR TESTING: Force government role
-      console.log('DEBUG: Forcing Government role for testing');
-      set({ permissions: rolePermissions.government });
-      return 'government';
+      // 1. Check if Admin (Owner)
+      try {
+        const owner = await contract.owner()
+        if (owner.toLowerCase() === account.toLowerCase()) {
+          console.log('User identified as Admin (Owner)');
+          set({ permissions: rolePermissions.admin });
+          return 'admin';
+        }
+      } catch (e) {
+        console.warn('Failed to check owner:', e)
+      }
+
+      // 2. Check if Vendor
+      try {
+        const vendor = await contract.getVendor(account)
+        // Check if vendor exists (address not empty)
+        if (vendor && vendor.vendorAddress && vendor.vendorAddress !== ethers.ZeroAddress) {
+          console.log('User identified as Vendor');
+          set({ permissions: rolePermissions.vendor });
+          return 'vendor';
+        }
+      } catch (e) {
+        // Not a vendor or call failed (reverts if not found in some implementations)
+      }
+
+      // 3. Default to Donor
+      // TODO: Add specific checks for Government, Treasury, Oracle, Victim via AccessControl if available
+      console.log('User identified as Donor (Default)');
+      set({ permissions: rolePermissions.donor });
+      return 'donor';
     } catch (error) {
       console.error('Role determination error:', error)
       return 'donor'
@@ -681,6 +798,281 @@ export const useWeb3Store = create<Web3Store>((set, get) => ({
       await get().updateBalance()
     }
     return result
+  },
+
+  setUserRole: (role: string) => {
+    const { user } = get();
+    set({
+      userRole: role,
+      user: user ? { ...user, role } : { role }, // Update user object too if exists
+      permissions: ROLE_PERMISSIONS[role] || [] // Sync permissions
+    })
+    toast.success(`Role switched to ${role}`)
+  },
+
+  // Auth Actions Implementation
+  initializeAuth: async () => {
+    const { isConnected, account, userRole: web3Role } = get();
+    set({ isLoadingAuth: true });
+
+    try {
+      // Development mode health check
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          // Silent health check
+          await apiService.getHealthStatus();
+        } catch (error) {
+          // Ignore
+        }
+      }
+
+      // 1. Check Traditional Auth
+      const authToken = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userData');
+
+      if (authToken && userData) {
+        try {
+          apiService.setAuthToken(authToken);
+          const verification = await apiService.verifyToken();
+
+          if (verification.success) {
+            const parsedUser = JSON.parse(userData);
+            set({
+              user: {
+                ...parsedUser,
+                authMethod: 'traditional',
+                permissions: ROLE_PERMISSIONS[parsedUser.role] || []
+              },
+              userRole: parsedUser.role,
+              permissions: ROLE_PERMISSIONS[parsedUser.role] || [],
+              isAuthenticated: true,
+              authMethod: 'traditional',
+              isLoadingAuth: false
+            });
+            return;
+          }
+        } catch (error) {
+          console.warn('Token verification failed', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          apiService.setAuthToken(null);
+        }
+      }
+
+      // 2. Check Web3 Auth (if wallet connected)
+      if (isConnected && account && web3Role) {
+        try {
+          const dbUser = await apiService.getUserByWallet(account);
+          if (dbUser.success && dbUser.data) {
+            const web3User = {
+              ...dbUser.data,
+              authMethod: 'wallet',
+              permissions: ROLE_PERMISSIONS[dbUser.data.role] || [],
+              verified: true
+            };
+            set({
+              user: web3User,
+              userRole: dbUser.data.role,
+              permissions: ROLE_PERMISSIONS[dbUser.data.role] || [],
+              isAuthenticated: true,
+              authMethod: 'wallet',
+              isLoadingAuth: false
+            });
+            return;
+          } else {
+            // Mock/Create user
+            const newUser = {
+              walletAddress: account,
+              role: web3Role,
+              status: 'active',
+              name: `User ${account.slice(0, 6)}...${account.slice(-4)}`,
+              authMethod: 'wallet',
+              permissions: ROLE_PERMISSIONS[web3Role] || [],
+              verified: false
+            };
+
+            // Attempt to sync with backend, but don't block
+            apiService.createUser(newUser).catch(e => console.warn('User creation background sync failed', e));
+
+            set({
+              user: newUser,
+              userRole: web3Role,
+              permissions: ROLE_PERMISSIONS[web3Role] || [],
+              isAuthenticated: true,
+              authMethod: 'wallet',
+              isLoadingAuth: false
+            });
+            return;
+          }
+        } catch (error) {
+          console.warn('Web3 Auth lookup failed', error);
+        }
+      }
+
+      // 3. Guest Fallback
+      const guestUser = {
+        id: 'guest',
+        role: 'guest',
+        name: 'Guest User',
+        authMethod: 'guest',
+        permissions: ROLE_PERMISSIONS.guest || [],
+        verified: false
+      };
+      set({
+        user: guestUser,
+        userRole: 'guest',
+        permissions: ROLE_PERMISSIONS.guest || [],
+        isAuthenticated: false,
+        authMethod: 'guest',
+        isLoadingAuth: false
+      });
+
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      set({ isLoadingAuth: false });
+    }
+  },
+
+  login: async (credentials: any) => {
+    set({ isLoadingAuth: true });
+    try {
+      const response = await apiService.login(credentials);
+      if (response.success && response.data) {
+        const { token, user: userData } = response.data;
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        apiService.setAuthToken(token);
+
+        set({
+          user: {
+            ...userData,
+            authMethod: 'traditional',
+            permissions: ROLE_PERMISSIONS[userData.role] || []
+          },
+          userRole: userData.role,
+          permissions: ROLE_PERMISSIONS[userData.role] || [],
+          isAuthenticated: true,
+          authMethod: 'traditional',
+          isLoadingAuth: false
+        });
+        showSuccess(`Welcome back, ${userData.firstName || userData.name}!`);
+        return userData;
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error) {
+      handleError(error, { context: 'Login' });
+      set({ isLoadingAuth: false });
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    const { authMethod, disconnect } = get();
+    try {
+      try { await apiService.logout(); } catch (e) { console.warn(e); }
+
+      if (authMethod === 'wallet') {
+        disconnect();
+      }
+
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
+      apiService.setAuthToken(null);
+
+      const guestUser = {
+        id: 'guest',
+        role: 'guest',
+        name: 'Guest User',
+        authMethod: 'guest',
+        permissions: ROLE_PERMISSIONS.guest || [],
+        verified: false
+      };
+
+      set({
+        user: guestUser,
+        userRole: 'guest',
+        permissions: ROLE_PERMISSIONS.guest || [],
+        isAuthenticated: false,
+        authMethod: 'guest',
+        isLoadingAuth: false
+      });
+      showSuccess('Logged out successfully');
+    } catch (error) {
+      handleError(error, { context: 'Logout' });
+    }
+  },
+
+  register: async (registrationData: any) => {
+    set({ isLoadingAuth: true });
+    try {
+      const response = await apiService.register(registrationData);
+      set({ isLoadingAuth: false });
+      if (response.success && response.data) {
+        showSuccess('Registration successful! Please check your email.');
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      set({ isLoadingAuth: false });
+      handleError(error, { context: 'Registration' });
+      throw error;
+    }
+  },
+
+  updateProfile: async (updates: any) => {
+    set({ isLoadingAuth: true });
+    try {
+      const response = await apiService.updateProfile(updates);
+      if (response.success && response.data) {
+        const updatedUser = response.data;
+        const { user } = get();
+        const newUser = { ...user, ...updatedUser, permissions: ROLE_PERMISSIONS[updatedUser.role] || user.permissions };
+
+        if (get().authMethod === 'traditional') {
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+
+        set({
+          user: newUser,
+          userRole: updatedUser.role, // Ensure role stays synced
+          permissions: newUser.permissions,
+          isLoadingAuth: false
+        });
+        showSuccess('Profile updated successfully');
+        return updatedUser;
+      } else {
+        throw new Error(response.message || 'Profile update failed');
+      }
+    } catch (error) {
+      set({ isLoadingAuth: false });
+      handleError(error, { context: 'Profile Update' });
+      throw error;
+    }
+  },
+
+  // Access Control Implementation
+  hasRole: (requiredRole: string) => {
+    const { userRole, roleHierarchy } = get()
+    if (!userRole) return false
+
+    // Check hierarchy: current role value >= required role value
+    // This allows higher privilged roles to access lower level features
+    const currentLevel = roleHierarchy[userRole.toLowerCase()] || 0
+    const requiredLevel = roleHierarchy[requiredRole.toLowerCase()] || 0
+
+    return currentLevel >= requiredLevel
+  },
+
+  hasPermission: (permission: string) => {
+    const { permissions } = get()
+    // 'manage:all' is a super-admin permission that grants everything
+    return permissions.includes(permission) || permissions.includes('manage:all')
+  },
+
+  can: (action: string) => {
+    return get().hasPermission(action)
   },
 }))
 

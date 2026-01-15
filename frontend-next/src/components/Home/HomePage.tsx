@@ -3,6 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -277,10 +278,11 @@ const HomePage = () => {
                 className="overflow-hidden transition-all duration-200 bg-white border border-gray-200 shadow-sm rounded-xl hover:shadow-md"
               >
                 <div className="relative h-48 bg-gray-200">
-                  <img
+                  <Image
                     src={disaster.image}
                     alt={disaster.name}
-                    className="object-cover w-full h-full"
+                    fill
+                    className="object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';

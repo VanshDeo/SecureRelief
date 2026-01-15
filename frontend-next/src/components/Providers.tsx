@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from '@/contexts/AuthContext';
+// import { AuthProvider } from '@/contexts/AuthContext';
 import { useWeb3Store } from '@/store/web3Store';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -14,9 +14,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }, [initialize]);
 
     return (
-        <AuthProvider>
+        <>
             {children}
-            <Toaster
+            < Toaster
                 position="top-right"
                 toastOptions={{
                     duration: 4000,
@@ -38,8 +38,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                             secondary: '#fff',
                         },
                     },
-                }}
+                }
+                }
             />
-        </AuthProvider>
+        </>
     );
 }

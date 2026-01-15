@@ -18,7 +18,7 @@ import {
   Search
 } from 'lucide-react'
 import { useWeb3Store } from '../../store/web3Store'
-import { useAuth } from '../../contexts/AuthContext'
+// import { useAuth } from '../../contexts/AuthContext'
 import WalletConnection from '../Web3/WalletConnection'
 import WalletStatusPanel from '../Web3/WalletStatusPanel'
 import RoleGuard from '../Auth/RoleGuard'
@@ -27,8 +27,7 @@ import Button from '../UI/Button'
 const Header = ({ onMenuClick, onDesktopMenuClick }) => {
   const pathname = usePathname()
   const router = useRouter()
-  const { isConnected, account, userRole, balance } = useWeb3Store()
-  const { isAuthenticated, user, logout, authMethod } = useAuth()
+  const { isConnected, account, userRole, balance, isAuthenticated, user, logout, authMethod } = useWeb3Store()
 
   const formatAddress = (address) => {
     if (!address) return ''
