@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { TestTube, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { ethers } from 'ethers'
-import toast from 'react-hot-toast'
 
 const ConnectionTester = () => {
   const [testResults, setTestResults] = useState({})
