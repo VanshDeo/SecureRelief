@@ -10,6 +10,8 @@ import { CheckCircle, AlertCircle, RefreshCw, WifiOff, FileText, Loader2, Upload
 import { motion, AnimatePresence } from 'framer-motion';
 import { RoleGuard } from '@/components/auth/RoleGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/Dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/Toast';
 
 type VerificationStatus = 'unverified' | 'pending' | 'verified';
 
@@ -17,12 +19,18 @@ type VerificationStatus = 'unverified' | 'pending' | 'verified';
 
 export default function BeneficiaryDashboard() {
     const { isConnected, address } = useAccount();
+    const { toast } = useToast();
     const [status, setStatus] = useState<VerificationStatus>('unverified');
     const [isOffline, setIsOffline] = useState(false);
     const [isVerifyOpen, setIsVerifyOpen] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [vouchers, setVouchers] = useState<any[]>([]);
     const [loadingVouchers, setLoadingVouchers] = useState(false);
+    const [isClaimOpen, setIsClaimOpen] = useState(false);
+    const [zones, setZones] = useState<any[]>([]);
+    const [loadingZones, setLoadingZones] = useState(false);
+    const [selectedZone, setSelectedZone] = useState<string>('');
+    const [isClaiming, setIsClaiming] = useState(false);
 
     // Simulate offline detection
     useEffect(() => {
@@ -45,8 +53,10 @@ export default function BeneficiaryDashboard() {
     const fetchVouchers = async () => {
         try {
             setLoadingVouchers(true);
+            console.log("Fetching vouchers for wallet:", address);
             const res = await fetch(`/api/beneficiary/vouchers?wallet=${address}`);
             const data = await res.json();
+            console.log("Voucher data received:", data);
             if (data.vouchers) {
                 setVouchers(data.vouchers);
                 // If we have vouchers, assume verified for demo purposes
@@ -70,13 +80,73 @@ export default function BeneficiaryDashboard() {
                     setIsVerifyOpen(false);
                     setStatus('pending');
                     // Simulate Oracle approval after a few seconds for demo
-                    setTimeout(() => setStatus('verified'), 3000);
+                    setTimeout(() => {
+                        setStatus('verified');
+                        fetchVouchers();
+                    }, 3000);
                     return 100;
                 }
                 return prev + 10;
             });
         }, 300);
     };
+
+    const fetchZones = async () => {
+        try {
+            setLoadingZones(true);
+            const res = await fetch('/api/admin/zones');
+            const data = await res.json();
+            setZones(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to fetch zones", error);
+        } finally {
+            setLoadingZones(false);
+        }
+    };
+
+    const handleClaimAid = async () => {
+        if (!selectedZone) {
+            toast("Please select a disaster zone", { type: 'error' });
+            return;
+        }
+
+        try {
+            setIsClaiming(true);
+            const res = await fetch('/api/beneficiary/vouchers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    walletAddress: address,
+                    zoneId: selectedZone
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setVouchers(prev => [data.voucher, ...prev]);
+                setIsClaimOpen(false);
+                toast("Voucher claimed successfully!", { type: 'success' });
+            } else {
+                toast(data.error || "Failed to claim aid", { type: 'error' });
+            }
+        } catch (error) {
+            console.error("Claim aid error:", error);
+            toast("An error occurred while claiming aid", { type: 'error' });
+        } finally {
+            setIsClaiming(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isClaimOpen) {
+            fetchZones();
+        }
+    }, [isClaimOpen]);
+
+    const totalValue = vouchers
+        .filter(v => v.status === 'ISSUED')
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
     return (
         <RoleGuard allowedRoles={['beneficiary']}>
@@ -86,11 +156,18 @@ export default function BeneficiaryDashboard() {
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Relief Vouchers</h1>
                         <p className="text-muted-foreground">Access your verified digital vouchers. Present the QR code to any approved vendor to redeem.</p>
                     </div>
-                    {isOffline && (
-                        <Badge variant="destructive" className="flex gap-1 animate-pulse">
-                            <WifiOff className="h-3 w-3" /> Offline Mode
-                        </Badge>
-                    )}
+                    <div className="flex gap-4 items-center">
+                        {status === 'verified' && (
+                            <Button onClick={() => setIsClaimOpen(true)} className="bg-primary hover:bg-primary/90">
+                                Claim Relief Aid
+                            </Button>
+                        )}
+                        {isOffline && (
+                            <Badge variant="destructive" className="flex gap-1 animate-pulse">
+                                <WifiOff className="h-3 w-3" /> Offline Mode
+                            </Badge>
+                        )}
+                    </div>
                 </div>
 
                 {/* Status Card */}
@@ -127,7 +204,7 @@ export default function BeneficiaryDashboard() {
                         {status === 'verified' && (
                             <div className="text-right hidden md:block">
                                 <p className="text-xs text-muted-foreground uppercase font-semibold">Total Voucher Value</p>
-                                <p className="text-2xl font-bold font-mono text-primary">$150.00 USDC</p>
+                                <p className="text-2xl font-bold font-mono text-primary">${totalValue.toFixed(2)} USDC</p>
                             </div>
                         )}
                     </CardContent>
@@ -171,6 +248,58 @@ export default function BeneficiaryDashboard() {
                     </DialogContent>
                 </Dialog>
 
+                {/* Claim Aid Dialog */}
+                <Dialog open={isClaimOpen} onOpenChange={setIsClaimOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Claim Relief Aid</DialogTitle>
+                            <DialogDescription>
+                                Select an active disaster zone to claim your relief aid entitlement.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Select Relief Zone</label>
+                                <Select onValueChange={setSelectedZone} value={selectedZone}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={loadingZones ? "Loading zones..." : "Choose a zone"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {zones.map((zone) => (
+                                            <SelectItem key={zone.id} value={zone.id}>
+                                                {zone.name} ({zone.type})
+                                            </SelectItem>
+                                        ))}
+                                        {zones.length === 0 && !loadingZones && (
+                                            <div className="p-2 text-sm text-muted-foreground text-center">No active zones found</div>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                                <div className="flex gap-3">
+                                    <AlertCircle className="h-5 w-5 text-blue-500 shrink-0" />
+                                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                                        <p className="font-bold">Important Notice</p>
+                                        <p>Claiming aid will generate a unique digital voucher tied to your identity. This voucher can only be redeemed at authorized vendors within the selected zone.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsClaimOpen(false)}>Cancel</Button>
+                            <Button onClick={handleClaimAid} disabled={isClaiming || !selectedZone}>
+                                {isClaiming ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : 'Generate Voucher'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 {/* Vouchers Section */}
                 <AnimatePresence>
                     {status === 'verified' && (
@@ -197,7 +326,7 @@ export default function BeneficiaryDashboard() {
                                                             </Badge>
                                                             <Badge variant="secondary" className="text-[10px] font-bold">VOUCHER #{voucher.id.slice(0, 8)}</Badge>
                                                         </div>
-                                                        <p className="text-3xl font-bold tracking-tight">{voucher.amount} <span className="text-base font-medium text-muted-foreground">USDC</span></p>
+                                                        <p className="text-3xl font-bold tracking-tight">{Number(voucher.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-base font-medium text-muted-foreground">USDC</span></p>
                                                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                                             <Calendar className="h-3 w-3" /> Valid until {voucher.expiry}
                                                         </p>
@@ -237,19 +366,15 @@ export default function BeneficiaryDashboard() {
                                             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 flex flex-col items-center justify-center border-l dark:border-slate-800 relative min-w-[200px]">
                                                 <div className="bg-white p-3 rounded-2xl shadow-inner border-4 border-white">
                                                     <QRCode
-                                                        value={JSON.stringify({
-                                                            id: voucher.id,
-                                                            amount: voucher.amount,
-                                                            beneficiary: address,
-                                                            type: voucher.type,
-                                                            zone: voucher.zone,
-                                                            qrCode: voucher.qrCode
-                                                        })}
+                                                        value={voucher.qrCode}
                                                         size={120}
                                                         className="h-28 w-28"
                                                     />
                                                 </div>
-                                                <p className="text-[10px] font-bold text-primary mt-4 tracking-widest uppercase">Scan to Redeem</p>
+                                                <div className="mt-2 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono text-muted-foreground break-all max-w-[140px] text-center border border-slate-200 dark:border-slate-700">
+                                                    {voucher.qrCode}
+                                                </div>
+                                                <p className="text-[10px] font-bold text-primary mt-2 tracking-widest uppercase">Scan to Redeem</p>
                                                 <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[140px]">Show this to any approved vendor in the relief zone.</p>
                                             </div>
                                         </div>
