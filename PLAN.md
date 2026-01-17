@@ -197,14 +197,12 @@ The conversation already provides detailed flows for Donor, Beneficiary (Victim)
 
 ---
 
-## 6. Spend-Control Patterns (Design choices)
+## 6. Spend-Control Patterns (Mandatory Voucher Flow)
 
-1. **Voucher-based (recommended):** vouchers encode allowed categories, max value, allowed vendor IDs. Low risk of fungibility.
-2. **Merchant Allowlist:** beneficiaries receive fungible stablecoin but can only spend at allowlisted merchants; enforced by vendors calling a `validateAndAccept` contract that checks allowlist and voucher tags.
-3. **Hybrid:** small portion fungible (for flexible expenses), main support via vouchers.
-4. **Escrow with Release Policies:** funds held in escrow until on-chain confirmation of service / redemption.
+1. **Voucher-based (Standard):** All aid is issued as digital vouchers (QR codes) encoding allowed categories, max value, and authorized disaster zones. This is the primary mechanism to ensure zero leakage and spend accountability.
+2. **Merchant Allowlist:** Vendors must be registered in the `VendorRegistry` to redeem vouchers.
+3. **Redemption settled in USDC:** When a vendor scans a voucher, the contract verifies the voucher and instantly settles the denominated USDC amount to the vendor's wallet.
 
-Tradeoffs: vouchers increase UX friction but reduce leakage; fungible transfers are simple but require stronger vendor governance.
 
 ---
 

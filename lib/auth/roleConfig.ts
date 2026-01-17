@@ -1,4 +1,4 @@
-import { UserRole } from "@/context/MockAuthContext";
+import { UserRole } from "@/context/AuthContext";
 
 // In a real app, these would be fetched from smart contracts or a backend
 // For this MVP/Demo, we map hardcoded addresses to roles for testing.
@@ -8,7 +8,7 @@ export const ROLE_REGISTRY: Record<string, UserRole> = {
     "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": "admin", // Hardhat Account #0
 
     // Government
-    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8": "government", // Hardhat Account #1
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8": "agency", // Hardhat Account #1
 
     // Oracle
     "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC": "oracle", // Hardhat Account #2

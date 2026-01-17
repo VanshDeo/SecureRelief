@@ -5,13 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRedeemVoucher } from '@/lib/web3/hooks';
-import { ScanLine, CheckCircle2, XCircle, ArrowRight, Loader2, History } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ScanLine, CheckCircle2, ArrowRight, Loader2, History } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { RoleGuard } from '@/components/auth/RoleGuard';
+
+interface ScannedData {
+    id: number | string;
+    amount: number;
+    type: string;
+    beneficiary: string;
+}
 
 export default function VendorDashboard() {
     const [isScanning, setIsScanning] = useState(false);
-    const [scannedData, setScannedData] = useState<any>(null);
+    const [scannedData, setScannedData] = useState<ScannedData | null>(null);
     const [manualCode, setManualCode] = useState("");
 
     // Web3 Hook
@@ -34,7 +41,7 @@ export default function VendorDashboard() {
 
     const handleRedeem = () => {
         if (!scannedData) return;
-        redeem(scannedData.id);
+        redeem(Number(scannedData.id));
     };
 
     const resetScan = () => {
@@ -46,7 +53,7 @@ export default function VendorDashboard() {
         <RoleGuard allowedRoles={['vendor']}>
             <div className="container mx-auto p-4 md:p-8 space-y-6">
                 <h1 className="text-3xl font-bold">Vendor Portal</h1>
-                <p className="text-muted-foreground">Scan beneficiary vouchers to receive instant stablecoin settlement.</p>
+                <p className="text-muted-foreground">Scan beneficiary vouchers to instantly receive stablecoin payments on Weilchain.</p>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -104,8 +111,8 @@ export default function VendorDashboard() {
                                         <div className="mx-auto h-12 w-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2">
                                             <CheckCircle2 className="h-6 w-6" />
                                         </div>
-                                        <h3 className="text-lg font-bold text-green-800">Voucher Valid</h3>
-                                        <p className="text-sm text-green-700">Code successfully scanned.</p>
+                                        <h3 className="text-lg font-bold text-green-800">Voucher Verified</h3>
+                                        <p className="text-sm text-green-700">Category matches and funds are available.</p>
                                     </div>
 
                                     <div className="space-y-2 text-sm">
@@ -178,7 +185,7 @@ export default function VendorDashboard() {
     );
 }
 
-function DollarSignIcon(props: any) {
+function DollarSignIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

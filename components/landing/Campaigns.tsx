@@ -8,44 +8,56 @@ import { Progress } from '@/components/ui/Progress';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useAccount, useConnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 
 const campaigns = [
   {
     id: 1,
-    title: "Turkey Earthquake",
-    description: "Providing emergency shelter, heaters, and medical supplies to displaced families.",
-    funded: 80,
-    raised: "$800k",
+    title: "Odisha Cyclone Relief",
+    description: "Emergency evacuation, food supplies, and temporary shelter for families affected by Cyclone Dana.",
+    funded: 84,
+    raised: "$840k",
     goal: "$1M",
     urgent: true,
     category: "Disaster Relief",
-    image: "https://images.unsplash.com/photo-1631580971032-159c403d9b43?q=80&w=1000&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1594817812921-6c2e3612d4d8?q=80&w=1000&auto=format&fit=crop"
   },
   {
     id: 2,
-    title: "Flood Response",
-    description: "Delivering food parcels, clean water kits, and hygiene essentials to flood-stricken regions.",
+    title: "Himachal Flood Response",
+    description: "Rebuilding bridges, supplying clean water, and medical aid to isolated mountain villages.",
     funded: 45,
     raised: "$225k",
     goal: "$500k",
-    urgent: false,
+    urgent: true,
     category: "Flood Relief",
-    image: "https://images.unsplash.com/photo-1547690623-1d54bd84323e?q=80&w=1000&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1626082490710-d02167d40a02?q=80&w=1000&auto=format&fit=crop"
   },
   {
     id: 3,
-    title: "Wildfire Recovery",
-    description: "Rebuilding homes, restoring infrastructure, and supporting firefighters on the front lines.",
+    title: "Wayanad Landslide Recovery",
+    description: "Long-term housing construction and livelihood restoration for displaced tea plantation workers.",
     funded: 60,
     raised: "$1.2M",
     goal: "$2M",
     urgent: false,
     category: "Reconstruction",
-    image: "https://images.unsplash.com/photo-1602989981881-817e79c2982d?q=80&w=1000&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1546874177-9be7a5bb5412?q=80&w=1000&auto=format&fit=crop"
   }
 ];
 
+import { useRouter } from 'next/navigation';
+
 export function Campaigns() {
+  const { isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const router = useRouter();
+
+  const handleLogin = () => {
+    router.push('/login');
+  };
+
   return (
     <section id="campaigns" className="py-24 container mx-auto px-4 md:px-6">
       <div className="flex flex-wrap items-center justify-between mb-12 gap-4">
@@ -54,7 +66,7 @@ export function Campaigns() {
           <h2 className="text-3xl font-bold tracking-tight">Active Relief Campaigns</h2>
           <p className="text-muted-foreground mt-2 max-w-xl">Support urgent on-ground operations directly ensuring funds reach those in need.</p>
         </div>
-        <Link href="/login">
+        <Link href="/campaigns">
           <Button variant="ghost" className="gap-2">
             View All Campaigns <ArrowRight className="h-4 w-4" />
           </Button>
@@ -112,11 +124,17 @@ export function Campaigns() {
               </CardContent>
 
               <CardFooter className="pt-0 pb-6">
-                <Link href="/login" className="w-full">
-                  <Button className="w-full">
+                {isConnected ? (
+                  <Link href="/impact/hurricane-delta" className="w-full">
+                    <Button className="w-full">
+                      Donate
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button className="w-full" onClick={handleLogin}>
                     Donate
                   </Button>
-                </Link>
+                )}
               </CardFooter>
             </Card>
           </motion.div>

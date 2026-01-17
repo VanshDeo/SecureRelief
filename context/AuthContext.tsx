@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import { SiweMessage } from 'siwe';
+import { getRoleByAddress } from '@/lib/auth/roleConfig';
 
 export type UserRole =
     | 'guest'
@@ -11,7 +12,7 @@ export type UserRole =
     | 'beneficiary'
     | 'vendor'
     | 'oracle'
-    | 'government';
+    | 'agency';
 
 interface User {
     id: string;
@@ -28,59 +29,72 @@ interface AuthContextType {
     isAuthenticated: boolean;
     walletAddress?: string;
     login: () => Promise<void>;
+    loginAsDemo: (role: UserRole) => void;
     logout: () => void;
     isLoading: boolean;
-    setRole: (role: UserRole) => void; // Kept for compatibility, acts as local override
+    setRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const { address, isConnected } = useAccount();
+    const { address, isConnected, status, chainId } = useAccount();
     const { signMessageAsync } = useSignMessage();
     const { disconnect } = useDisconnect();
 
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<UserRole>('guest');
     const [isLoading, setIsLoading] = useState(true);
+    const [isDevOverride, setIsDevOverride] = useState(false);
 
-    // Check session on mount
+    // Initial session check
     useEffect(() => {
         const checkAuth = async () => {
-            // We need to store the token somewhere. 
-            // Ideally we used cookies, so the browser handles it.
-            // But my login route returns token in body.
-            // If I didn't set cookie, I need to store it in localStorage.
-            // But for now, let's assume we implement checkAuth later or rely on token in localStorage.
-
-            // Wait, if I want to persist login, I should have used cookies.
-            // But my implementation returned token in JSON.
-            // So I'll store in localStorage.
             const token = localStorage.getItem('accessToken');
             if (token) {
                 try {
                     const res = await fetch('/api/auth/me', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (res.ok) {
                         const userData = await res.json();
                         setUser(userData);
                         setRole(userData.role.toLowerCase() as UserRole);
                     } else {
-                        // Token invalid
                         localStorage.removeItem('accessToken');
-                        localStorage.removeItem('refreshToken');
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error("[Auth] Session check failed:", e);
                 }
             }
             setIsLoading(false);
         };
         checkAuth();
     }, []);
+
+    // Auto-detect role on wallet connection
+    useEffect(() => {
+        if (!isDevOverride && isConnected && address) {
+            const detectedRole = getRoleByAddress(address);
+            if (role === 'guest' || (detectedRole !== role && !isDevOverride)) {
+                console.log(`[Auth] Auto-detected role: ${detectedRole}`);
+                setRole(detectedRole);
+            }
+        } else if (!isDevOverride && !isConnected && status !== 'reconnecting') {
+            setRole('guest');
+        }
+    }, [address, isConnected, isDevOverride, role, status]);
+
+    const handleSetRole = (newRole: UserRole) => {
+        setIsDevOverride(true);
+        setRole(newRole);
+    };
+
+    const loginAsDemo = (demoRole: UserRole) => {
+        console.log(`[Auth] Logging in as Demo: ${demoRole}`);
+        setIsDevOverride(true);
+        setRole(demoRole);
+    };
 
     const login = async () => {
         if (!address || !isConnected) {
@@ -90,71 +104,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             setIsLoading(true);
-            // 1. Get Nonce
             const nonceRes = await fetch('/api/auth/nonce', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ walletAddress: address })
             });
 
-            if (!nonceRes.ok) {
-                const error = await nonceRes.json();
-                throw new Error(error.error || 'Failed to get nonce');
-            }
-
+            if (!nonceRes.ok) throw new Error('Failed to get nonce');
             const { nonce } = await nonceRes.json();
 
-            // 2. Sign Message
             const message = new SiweMessage({
                 domain: window.location.host,
                 address: address,
-                statement: 'Sign in with Ethereum to the app.',
+                statement: 'Sign in with Ethereum to SecureRelief.',
                 uri: window.location.origin,
                 version: '1',
-                chainId: 1, // Mainnet (or whatever chainId you use)
+                chainId: chainId || 1,
                 nonce: nonce,
             });
             const messageText = message.prepareMessage();
             const signature = await signMessageAsync({ message: messageText });
 
-            // 3. Login
             const loginRes = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: messageText,
-                    signature
-                })
+                body: JSON.stringify({ message: messageText, signature })
             });
 
-            if (!loginRes.ok) {
-                const error = await loginRes.json();
-                throw new Error(error.error || 'Login failed');
-            }
-
+            if (!loginRes.ok) throw new Error('Login failed');
             const data = await loginRes.json();
 
-            // Store tokens
             localStorage.setItem('accessToken', data.accessToken);
             localStorage.setItem('refreshToken', data.refreshToken);
-
             setUser(data.user);
             setRole(data.user.role.toLowerCase() as UserRole);
-
         } catch (error) {
-            console.error('Login failed', error);
-            alert('Login failed: ' + (error as Error).message);
+            console.error('[Auth] SIWE Login failed:', error);
+            // Fallback: stay in mock mode if SIWE fails but wallet is connected
+            alert('Security login failed, proceeding in Demo Mode.');
         } finally {
             setIsLoading(false);
         }
     };
 
     const logout = async () => {
-        await fetch('/api/auth/logout', { method: 'POST' });
+        try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) { }
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         setUser(null);
         setRole('guest');
+        setIsDevOverride(false);
         disconnect();
     };
 
@@ -162,12 +161,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider value={{
             user,
             role,
-            setRole, // For now, just updates local state
-            isAuthenticated: !!user,
+            setRole: handleSetRole,
+            // Authenticated if we have a user (Real) OR if dev override is on OR wallet connected
+            isAuthenticated: !!user || isDevOverride || (isConnected && role !== 'guest'),
             walletAddress: address,
             login,
+            loginAsDemo,
             logout,
-            isLoading
+            isLoading: isLoading || status === 'connecting' || status === 'reconnecting'
         }}>
             {children}
         </AuthContext.Provider>
@@ -176,8 +177,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
     return context;
 };

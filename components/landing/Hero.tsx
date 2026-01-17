@@ -5,12 +5,23 @@ import { Button } from '@/components/ui/Button';
 import { motion } from 'framer-motion';
 import { ArrowRight, Activity, ShieldCheck, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import { useAuth } from '@/context/AuthContext';
+import { injected } from 'wagmi/connectors';
 
 export function Hero() {
   const { isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
   const { isAuthenticated, role } = useAuth();
+
+  const handleLogin = () => {
+    const metamask = connectors.find((c) => c.id === 'metaMask');
+    if (metamask) {
+      connect({ connector: metamask });
+    } else {
+      connect({ connector: injected() });
+    }
+  };
 
   return (
     <section className="py-6 md:py-10 container mx-auto px-4 md:px-6">
@@ -31,10 +42,10 @@ export function Hero() {
             className="text-left"
           >
             {/* Optional Badge */}
-            {/* <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm backdrop-blur-sm mb-6">
+            <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm backdrop-blur-sm mb-6">
               <Activity className="mr-2 h-4 w-4 text-primary-foreground" />
               <span className="text-gray-200">Emergency Response System Online</span>
-            </div> */}
+            </div>
 
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
               Immediate Aid Where It <span className="text-primary block mt-2">Matters Most</span>
@@ -54,12 +65,14 @@ export function Hero() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/login">
-                  <Button size="lg" className="text-base h-14 px-8 shadow-xl shadow-primary/20 gap-2 bg-primary hover:bg-primary/90 text-white border-0">
-                    <ShieldCheck className="h-5 w-5" />
-                    Donate Now
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  onClick={handleLogin}
+                  className="text-base h-14 px-8 shadow-xl shadow-primary/20 gap-2 bg-primary hover:bg-primary/90 text-white border-0"
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  Donate Now
+                </Button>
               )}
 
               <Link href="/impact/hurricane-delta">

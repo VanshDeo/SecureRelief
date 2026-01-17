@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { ShieldCheck, Bell, User, LogOut, ChevronDown, Wallet, Menu, X } from 'lucide-react';
@@ -15,15 +16,36 @@ import { injected } from 'wagmi/connectors';
 export function Navbar() {
     const { role, setRole, isAuthenticated, logout: authLogout } = useAuth();
     const { address, isConnected } = useAccount();
-    const { connect } = useConnect();
+    const { connect, connectors } = useConnect();
     const { disconnect } = useDisconnect();
 
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [isUserOpen, setIsUserOpen] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+    const notifRef = useRef<HTMLDivElement>(null);
+    const userRef = useRef<HTMLDivElement>(null);
+
+    const router = useRouter();
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+                setIsNotifOpen(false);
+            }
+            if (userRef.current && !userRef.current.contains(event.target as Node)) {
+                setIsUserOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     const handleLogin = () => {
-        connect({ connector: injected() });
+        router.push('/login');
     };
 
     const handleDisconnect = () => {
@@ -32,9 +54,9 @@ export function Navbar() {
     };
 
     const navLinks = [
-        { name: 'How it Works', href: '/#how-it-works' },
-        { name: 'Active Reliefs', href: '/#campaigns' },
-        { name: 'Impact', href: '/impact/hurricane-delta' }, // Mock link
+        { name: 'How it Works', href: '/#HowItWorks' },
+        { name: 'Active Reliefs', href: '/campaigns' },
+        { name: 'Impact', href: '/impact' },
     ];
 
     return (
@@ -97,7 +119,7 @@ export function Navbar() {
                                 <div className="h-6 w-px bg-border/50 mx-1" />
 
                                 {/* Notifications */}
-                                <div className="relative">
+                                <div className="relative" ref={notifRef}>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -145,7 +167,7 @@ export function Navbar() {
                                 </div>
 
                                 {/* User Profile Button */}
-                                <div className="relative">
+                                <div className="relative" ref={userRef}>
                                     <button
                                         onClick={() => setIsUserOpen(!isUserOpen)}
                                         className="flex items-center gap-2 focus:outline-none ml-1"
@@ -188,6 +210,12 @@ export function Navbar() {
                                                         <User className="h-4 w-4 text-muted-foreground" />
                                                         Dashboard
                                                     </Link>
+                                                    <Link href="/profile" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
+                                                        <Avatar className="h-4 w-4">
+                                                            <AvatarFallback className="text-[10px]">P</AvatarFallback>
+                                                        </Avatar>
+                                                        Profile Settings
+                                                    </Link>
                                                     <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
                                                         <Bell className="h-4 w-4 text-muted-foreground" />
                                                         Notifications
@@ -198,7 +226,7 @@ export function Navbar() {
                                                 <div className="px-3 py-2 border-t border-border/50">
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground mb-2 tracking-wider">Dev Tools: Switch Role</p>
                                                     <div className="grid grid-cols-2 gap-1">
-                                                        {['donor', 'admin', 'beneficiary', 'vendor'].map((r) => (
+                                                        {['donor', 'admin', 'beneficiary', 'vendor', 'oracle', 'agency'].map((r) => (
                                                             <button
                                                                 key={r}
                                                                 onClick={() => { setRole(r as UserRole); setIsUserOpen(false); }}
