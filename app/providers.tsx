@@ -6,6 +6,8 @@ import { config } from '@/lib/config';
 import { AuthProvider } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
 
+import { ToastProvider } from '@/components/ui/Toast';
+
 export function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(() => new QueryClient());
     const [mounted, setMounted] = useState(false);
@@ -21,9 +23,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
+                <ToastProvider>
+                    <AuthProvider>
+                        {children}
+                    </AuthProvider>
+                </ToastProvider>
             </QueryClientProvider>
         </WagmiProvider>
     );

@@ -23,7 +23,7 @@ const roles = [
 export default function LoginPage() {
     const { isConnected } = useAccount();
     const { connect, connectAsync, connectors } = useConnect();
-    const { setRole, isAuthenticated, role, loginAsDemo } = useAuth();
+    const { setRole, isAuthenticated, role, loginAsDemo, login } = useAuth();
     const router = useRouter();
 
 
@@ -126,6 +126,7 @@ export default function LoginPage() {
                                                     onClick={async () => {
                                                         try {
                                                             await connectAsync({ connector });
+                                                            await login();
                                                         } catch (err: any) {
                                                             if (err.code !== 4001) alert(`Wallet error: ${err.message}`);
                                                         }

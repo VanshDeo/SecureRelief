@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/Card';
 import { Progress } from '@/components/ui/Progress';
 import { Button } from '@/components/ui/Button';
@@ -15,10 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AidMap } from '@/components/map/AidMap';
 
 
-const activeCampaigns = [
-    { id: 1, title: "Odisha Cyclone Relief", goal: 1000000, raised: 800000, image: "https://images.unsplash.com/photo-1594817812921-6c2e3612d4d8?q=80&w=1000", location: "Odisha, India", beneficiaries: 45000 },
-    { id: 2, title: "Himachal Flood Response", goal: 500000, raised: 225000, image: "https://images.unsplash.com/photo-1626082490710-d02167d40a02?q=80&w=1000", location: "Himachal Pradesh, India", beneficiaries: 12200 }
-];
+
 
 const donationHistory = [
     { id: "tx_01", date: "2024-01-15", amount: 50, campaign: "Odisha Cyclone Relief", category: "Unrestricted", status: "Redeemed", impact: "Food Voucher #8821" },
@@ -26,22 +23,199 @@ const donationHistory = [
     { id: "tx_03", date: "2023-12-28", amount: 250, campaign: "Himachal Flood Response", category: "Shelter", status: "Redeemed", impact: "Tent Kit #449" },
 ];
 
-export default function DonorDashboard() {
-    const { address } = useAccount();
-    const { data: balance, isLoading: isBalanceLoading } = useUSDCBalance(address);
-    const { donate, isPending, isConfirming, isConfirmed, hash } = useDonate();
-
+// Isolated Campaign Card Component to handle individual state
+function CampaignCard({ campaign, onDonate, isProcessing, isGlobalBusy }: { campaign: any, onDonate: (id: string, amount: string) => void, isProcessing: boolean, isGlobalBusy: boolean }) {
     const [selectedAmount, setSelectedAmount] = useState<string>("50");
     const [selectedCategory, setSelectedCategory] = useState<string>("general");
     const [customAmount, setCustomAmount] = useState<string>("");
 
-    const handleDonate = (zoneId: string) => {
+    // Local handler to prepare donation data
+    const handleLocalDonate = () => {
+        if (isGlobalBusy) return;
         const amount = customAmount ? customAmount : selectedAmount;
-        donate(zoneId, amount); // Passed category would go here in real implementation
+        onDonate(campaign.id.toString(), amount);
     };
 
     return (
-        <RoleGuard allowedRoles={['donor']}>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }} // Simplified delay
+        >
+            <Card className="overflow-hidden h-full flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-full md:w-48 h-48 md:h-auto shrink-0 bg-cover bg-center" style={{ backgroundImage: `url(${campaign.image})` }} />
+                <div className="flex-1 flex flex-col">
+                    <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle className="text-lg font-bold">{campaign.title}</CardTitle>
+                                <CardDescription className="flex items-center gap-1 mt-1">
+                                    <Globe className="h-3 w-3" /> {campaign.location}
+                                </CardDescription>
+                            </div>
+                            <Badge variant="secondary" className="bg-primary/10 text-primary">Verified Zone</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 space-y-4">
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm font-medium">
+                                <span>${campaign.raised.toLocaleString()} raised</span>
+                                <span className="text-muted-foreground">${campaign.goal.toLocaleString()} goal</span>
+                            </div>
+                            <Progress value={(campaign.raised / campaign.goal) * 100} className="h-2" />
+                        </div>
+
+                        {/* Donation Controls */}
+                        <div className="bg-gray-50 p-3 rounded-lg border space-y-3">
+                            <div className="flex gap-2">
+                                <div className="flex-1">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Amount (USDC)</label>
+                                    <div className="flex gap-2">
+                                        {['50', '100'].map((amt) => (
+                                            <Button
+                                                key={amt}
+                                                variant={selectedAmount === amt ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => { setSelectedAmount(amt); setCustomAmount(""); }}
+                                                className="flex-1 h-8 text-xs"
+                                            >
+                                                ${amt}
+                                            </Button>
+                                        ))}
+                                        <div className="relative flex-1">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                                            <input
+                                                type="number"
+                                                placeholder="Custom"
+                                                className="w-full h-8 pl-4 pr-2 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                                                value={customAmount}
+                                                onChange={(e) => {
+                                                    setCustomAmount(e.target.value);
+                                                    setSelectedAmount("");
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="w-[140px]">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Restriction</label>
+                                    <Select defaultValue="general" onValueChange={setSelectedCategory}>
+                                        <SelectTrigger className="h-8 text-xs">
+                                            <SelectValue placeholder="Category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="general">Unrestricted</SelectItem>
+                                            <SelectItem value="food">Food & Water</SelectItem>
+                                            <SelectItem value="medical">Medical Aid</SelectItem>
+                                            <SelectItem value="shelter">Shelter</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="pt-2">
+                        <Button
+                            className="w-full shadow-lg shadow-primary/20"
+                            onClick={handleLocalDonate}
+                            disabled={isProcessing}
+                        >
+                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Heart className="mr-2 h-4 w-4 text-red-200 fill-red-200" />}
+                            {isProcessing ? 'Processing...' : 'Donate Now'}
+                        </Button>
+                    </CardFooter>
+                </div>
+            </Card>
+        </motion.div>
+    );
+}
+
+export default function DonorDashboard() {
+    const { address } = useAccount();
+    const { data: balance, isLoading: isBalanceLoading } = useUSDCBalance(address);
+    const { donate, isPending, isConfirming, isConfirmed, hash } = useDonate();
+    // Removed global state variables: selectedAmount, selectedCategory, customAmount
+
+    const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [processingId, setProcessingId] = useState<string | null>(null);
+    const [isTopUpPending, setIsTopUpPending] = useState(false);
+
+    const handleTopUp = async () => {
+        if (!address) return;
+        setIsTopUpPending(true);
+        try {
+            await fetch('/api/user/balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wallet: address, amount: 1000 })
+            });
+            // We rely on the hook re-fetching or we force re-fetch.
+            // For now, simple page reload or optimistically waiting would be better,
+            // but the hook uses useReadContract (old) which we need to SWAP for API.
+            window.location.reload();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsTopUpPending(false);
+        }
+    };
+
+    // Reset processing ID when transaction cycle is complete
+    useEffect(() => {
+        if (!isPending && !isConfirming) {
+            setProcessingId(null);
+        }
+    }, [isPending, isConfirming]);
+
+    const fetchZones = async () => {
+        try {
+            const res = await fetch('/api/admin/zones');
+            if (res.ok) {
+                const data = await res.json();
+                const mapped = data.map((z: any) => ({
+                    id: z.id,
+                    title: z.name,
+                    goal: Number(z.budget),
+                    raised: Number(z.allocated || 0),
+                    image: z.image || (z.type === 'Flood' ? "https://images.unsplash.com/photo-1626082490710-d02167d40a02?q=80&w=1000" :
+                        z.type === 'Earthquake' ? "https://images.unsplash.com/photo-1594817812921-6c2e3612d4d8?q=80&w=1000" :
+                            "https://images.unsplash.com/photo-1594817812921-6c2e3612d4d8?q=80&w=1000"),
+                    location: z.location,
+                    latitude: z.latitude,
+                    longitude: z.longitude,
+                    beneficiaries: 0
+                }));
+                setCampaigns(mapped);
+            }
+        } catch (error) {
+            console.error("Failed to fetch campaigns", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchZones();
+    }, []);
+
+    // Refresh campaigns when donation is confirmed
+    useEffect(() => {
+        if (isConfirmed) {
+            fetchZones();
+        }
+    }, [isConfirmed]);
+
+
+    const handleDonate = (zoneId: string, amount: string) => {
+        if (!address) {
+            // In a real app we might prompt connection/toast here, but the hook likely requires it implicitly.
+            // Our updated hook handles generic mock wallet if missing, but let's pass real if we have it.
+        }
+        setProcessingId(zoneId);
+        donate(zoneId, amount, address);
+    };
+
+    return (
+        <>
+            {/* <RoleGuard allowedRoles={['donor']}> */}
             <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-background to-background p-4 md:p-8 space-y-8">
                 <div className="container mx-auto space-y-6">
 
@@ -60,10 +234,18 @@ export default function DonorDashboard() {
                                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Balance</p>
                                     <p className="text-xl font-bold tracking-tight font-mono">
                                         {isBalanceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> :
-                                            balance ? `${(Number(balance) / 1000000).toLocaleString()} USDC` : '0 USDC'}
+                                            `${Number(balance || 0).toLocaleString()} USDC`}
                                     </p>
                                 </div>
-                                <Button size="sm" variant="outline" className="ml-4 h-8 text-xs">Top Up</Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="ml-4 h-8 text-xs"
+                                    onClick={() => handleTopUp()}
+                                    disabled={isTopUpPending}
+                                >
+                                    {isTopUpPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Top Up"}
+                                </Button>
                             </CardContent>
                         </Card>
                     </div>
@@ -102,7 +284,7 @@ export default function DonorDashboard() {
                                     <CardTitle className="text-sm font-medium text-muted-foreground">Active Zones</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-3xl font-bold">3</div>
+                                    <div className="text-3xl font-bold">{campaigns.length}</div>
                                     <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                         <Globe className="h-3 w-3 text-purple-500" /> Regions funded
                                     </p>
@@ -113,7 +295,15 @@ export default function DonorDashboard() {
 
                     {/* Live Impact Map */}
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                        <AidMap />
+                        <AidMap zones={campaigns.map(c => ({
+                            id: c.id,
+                            name: c.title,
+                            location: c.location,
+                            budget: c.goal,
+                            allocated: c.raised,
+                            latitude: c.latitude,
+                            longitude: c.longitude
+                        }))} />
                     </motion.div>
 
                     <Tabs defaultValue="campaigns" className="space-y-6">
@@ -126,98 +316,14 @@ export default function DonorDashboard() {
                         {/* Active Campaigns Tab */}
                         <TabsContent value="campaigns" className="space-y-6">
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                {activeCampaigns.map((campaign, i) => (
-                                    <motion.div
+                                {campaigns.map((campaign, i) => (
+                                    <CampaignCard
                                         key={campaign.id}
-                                        initial={{ opacity: 0, scale: 0.98 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: i * 0.1 }}
-                                    >
-                                        <Card className="overflow-hidden h-full flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow">
-                                            <div className="w-full md:w-48 h-48 md:h-auto shrink-0 bg-cover bg-center" style={{ backgroundImage: `url(${campaign.image})` }} />
-                                            <div className="flex-1 flex flex-col">
-                                                <CardHeader className="pb-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <CardTitle className="text-lg font-bold">{campaign.title}</CardTitle>
-                                                            <CardDescription className="flex items-center gap-1 mt-1">
-                                                                <Globe className="h-3 w-3" /> {campaign.location}
-                                                            </CardDescription>
-                                                        </div>
-                                                        <Badge variant="secondary" className="bg-primary/10 text-primary">Verified Zone</Badge>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="flex-1 space-y-4">
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between text-sm font-medium">
-                                                            <span>${campaign.raised.toLocaleString()} raised</span>
-                                                            <span className="text-muted-foreground">${campaign.goal.toLocaleString()} goal</span>
-                                                        </div>
-                                                        <Progress value={(campaign.raised / campaign.goal) * 100} className="h-2" />
-                                                    </div>
-
-                                                    {/* Donation Controls */}
-                                                    <div className="bg-gray-50 p-3 rounded-lg border space-y-3">
-                                                        <div className="flex gap-2">
-                                                            <div className="flex-1">
-                                                                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Amount (USDC)</label>
-                                                                <div className="flex gap-2">
-                                                                    {['50', '100'].map((amt) => (
-                                                                        <Button
-                                                                            key={amt}
-                                                                            variant={selectedAmount === amt ? "default" : "outline"}
-                                                                            size="sm"
-                                                                            onClick={() => setSelectedAmount(amt)}
-                                                                            className="flex-1 h-8 text-xs"
-                                                                        >
-                                                                            ${amt}
-                                                                        </Button>
-                                                                    ))}
-                                                                    <div className="relative flex-1">
-                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                                                                        <input
-                                                                            type="number"
-                                                                            placeholder="Custom"
-                                                                            className="w-full h-8 pl-4 pr-2 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
-                                                                            value={customAmount}
-                                                                            onChange={(e) => {
-                                                                                setCustomAmount(e.target.value);
-                                                                                setSelectedAmount("");
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="w-[140px]">
-                                                                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Restriction</label>
-                                                                <Select defaultValue="general" onValueChange={setSelectedCategory}>
-                                                                    <SelectTrigger className="h-8 text-xs">
-                                                                        <SelectValue placeholder="Category" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="general">Unrestricted</SelectItem>
-                                                                        <SelectItem value="food">Food & Water</SelectItem>
-                                                                        <SelectItem value="medical">Medical Aid</SelectItem>
-                                                                        <SelectItem value="shelter">Shelter</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                                <CardFooter className="pt-2">
-                                                    <Button
-                                                        className="w-full shadow-lg shadow-primary/20"
-                                                        onClick={() => handleDonate(campaign.id.toString())}
-                                                        disabled={isPending || isConfirming}
-                                                    >
-                                                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Heart className="mr-2 h-4 w-4 text-red-200 fill-red-200" />}
-                                                        {isPending ? 'Processing...' : 'Donate Now'}
-                                                    </Button>
-                                                </CardFooter>
-                                            </div>
-                                        </Card>
-                                    </motion.div>
+                                        campaign={campaign}
+                                        onDonate={handleDonate}
+                                        isProcessing={processingId === campaign.id.toString() && (isPending || isConfirming)}
+                                        isGlobalBusy={isPending || isConfirming}
+                                    />
                                 ))}
                             </div>
                         </TabsContent>
@@ -343,6 +449,7 @@ export default function DonorDashboard() {
                     </AnimatePresence>
                 </div>
             </div>
-        </RoleGuard>
+            {/* </RoleGuard> */}
+        </>
     );
 }

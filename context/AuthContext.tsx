@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import { SiweMessage } from 'siwe';
 import { getRoleByAddress } from '@/lib/auth/roleConfig';
+import { useToast } from '@/components/ui/Toast';
 
 export type UserRole =
     | 'guest'
@@ -29,6 +30,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     walletAddress?: string;
     login: () => Promise<void>;
+    register: (data: { name: string; email: string; role: string }) => Promise<void>;
     loginAsDemo: (role: UserRole) => void;
     logout: () => void;
     isLoading: boolean;
@@ -41,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { address, isConnected, status, chainId } = useAccount();
     const { signMessageAsync } = useSignMessage();
     const { disconnect } = useDisconnect();
+    const { toast } = useToast();
 
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<UserRole>('guest');
@@ -77,13 +80,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isDevOverride && isConnected && address) {
             const detectedRole = getRoleByAddress(address);
             if (role === 'guest' || (detectedRole !== role && !isDevOverride)) {
+                // Toast for connection
+                toast("Wallet Connected", {
+                    description: `Connected: ${address.slice(0, 6)}...${address.slice(-4)}`,
+                    type: 'wallet'
+                });
+
                 console.log(`[Auth] Auto-detected role: ${detectedRole}`);
                 setRole(detectedRole);
             }
         } else if (!isDevOverride && !isConnected && status !== 'reconnecting') {
             setRole('guest');
         }
-    }, [address, isConnected, isDevOverride, role, status]);
+    }, [address, isConnected, isDevOverride, role, status, toast]);
 
     const handleSetRole = (newRole: UserRole) => {
         setIsDevOverride(true);
@@ -96,9 +105,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRole(demoRole);
     };
 
+    const register = async (data: { name: string; email: string; role: string }) => {
+        if (!address || !isConnected) {
+            toast('Please connect your wallet first', { type: 'error' });
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            // Generate a random secure password since we use wallet auth exclusively
+            const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + "1aA!";
+
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...data,
+                    walletAddress: address,
+                    password: randomPassword,
+                    confirmPassword: randomPassword
+                })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Registration failed');
+            }
+
+            // Auto-login after registration
+            await login();
+            toast("Registration Successful", { type: 'success', description: `Welcome, ${data.name}!` });
+        } catch (error: any) {
+            console.error('[Auth] Registration failed:', error);
+            toast("Registration Failed", { type: 'error', description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const login = async () => {
         if (!address || !isConnected) {
-            alert('Please connect your wallet first');
+            toast('Please connect your wallet first', { type: 'error' });
             return;
         }
 
@@ -138,10 +185,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('refreshToken', data.refreshToken);
             setUser(data.user);
             setRole(data.user.role.toLowerCase() as UserRole);
+            toast("Secure Login Successful", { type: 'success', description: "Session authenticated via SIWE." });
+
         } catch (error) {
             console.error('[Auth] SIWE Login failed:', error);
             // Fallback: stay in mock mode if SIWE fails but wallet is connected
-            alert('Security login failed, proceeding in Demo Mode.');
+            toast('Security login failed', {
+                type: 'error',
+                description: 'Proceeding in Demo Mode (Limited Access).'
+            });
         } finally {
             setIsLoading(false);
         }
@@ -155,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRole('guest');
         setIsDevOverride(false);
         disconnect();
+        toast("Logged out", { type: 'info' });
     };
 
     return (
@@ -166,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthenticated: !!user || isDevOverride || (isConnected && role !== 'guest'),
             walletAddress: address,
             login,
+            register,
             loginAsDemo,
             logout,
             isLoading: isLoading || status === 'connecting' || status === 'reconnecting'

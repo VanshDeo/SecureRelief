@@ -41,7 +41,7 @@ const accountTypes = [
 export default function SignUpPage() {
     const { isConnected } = useAccount();
     const { connect, connectAsync, connectors } = useConnect();
-    const { setRole, role, isAuthenticated } = useAuth();
+    const { setRole, role, isAuthenticated, register } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -279,6 +279,13 @@ export default function SignUpPage() {
                                                                 if (selectedRole) setRole(selectedRole as UserRole);
                                                                 console.log(`[Auth] Attempting to connect with ${connector.name}...`);
                                                                 await connectAsync({ connector });
+
+                                                                // Trigger Registration
+                                                                await register({
+                                                                    name: formData.name,
+                                                                    email: formData.email,
+                                                                    role: selectedRole?.toUpperCase() || 'DONOR'
+                                                                });
                                                             } catch (err) {
                                                                 console.error("SignUp connection failed:", err);
                                                                 if ((err as any).code !== 4001) {

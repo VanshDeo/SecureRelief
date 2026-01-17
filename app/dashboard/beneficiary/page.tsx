@@ -13,22 +13,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 
 type VerificationStatus = 'unverified' | 'pending' | 'verified';
 
-const MOCK_VOUCHERS = [
-    { id: 101, type: "Food & Water", amount: 50, expiry: "2026-02-01", zone: "Odisha Cyclone Relief" },
-    { id: 102, type: "Medical Supplies", amount: 100, expiry: "2026-03-01", zone: "Himachal Flood Response" },
-];
 
-const MOCK_HISTORY = [
-    { id: "tx_01", date: "2024-01-10", item: "Food Kit (Rice, Wheat)", location: "Bhubaneswar Relief Center", status: "Redeemed" },
-    { id: "tx_02", date: "2023-12-25", item: "Medical Checkup", location: "Mobile Clinic #4", status: "Redeemed" },
-];
 
 export default function BeneficiaryDashboard() {
-    const { isConnected } = useAccount();
+    const { isConnected, address } = useAccount();
     const [status, setStatus] = useState<VerificationStatus>('unverified');
     const [isOffline, setIsOffline] = useState(false);
     const [isVerifyOpen, setIsVerifyOpen] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [vouchers, setVouchers] = useState<any[]>([]);
+    const [loadingVouchers, setLoadingVouchers] = useState(false);
 
     // Simulate offline detection
     useEffect(() => {
@@ -41,6 +35,31 @@ export default function BeneficiaryDashboard() {
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+
+    useEffect(() => {
+        if (isConnected && address) {
+            fetchVouchers();
+        }
+    }, [isConnected, address]);
+
+    const fetchVouchers = async () => {
+        try {
+            setLoadingVouchers(true);
+            const res = await fetch(`/api/beneficiary/vouchers?wallet=${address}`);
+            const data = await res.json();
+            if (data.vouchers) {
+                setVouchers(data.vouchers);
+                // If we have vouchers, assume verified for demo purposes
+                if (data.vouchers.length > 0) {
+                    setStatus('verified');
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch vouchers", error);
+        } finally {
+            setLoadingVouchers(false);
+        }
+    };
 
     const handleVerifySubmit = () => {
         setUploadProgress(0);
@@ -165,7 +184,7 @@ export default function BeneficiaryDashboard() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="grid grid-cols-1 md:grid-cols-2 gap-6"
                                 >
-                                    {MOCK_VOUCHERS.map((voucher) => (
+                                    {vouchers.filter(v => v.status === 'ISSUED').map((voucher) => (
                                         <div key={voucher.id} className="group bg-white dark:bg-slate-800 border-2 border-primary/10 text-card-foreground shadow-sm hover:shadow-lg hover:border-primary/30 transition-all rounded-2xl overflow-hidden flex flex-col md:flex-row">
                                             {/* Left: Info */}
                                             <div className="p-6 flex-1 space-y-4">
@@ -176,7 +195,7 @@ export default function BeneficiaryDashboard() {
                                                                 {voucher.type === "Medical Supplies" ? <Landmark className="h-3 w-3 mr-1" /> : <FileText className="h-3 w-3 mr-1" />}
                                                                 {voucher.type}
                                                             </Badge>
-                                                            <Badge variant="secondary" className="text-[10px] font-bold">VOUCHER #{voucher.id}</Badge>
+                                                            <Badge variant="secondary" className="text-[10px] font-bold">VOUCHER #{voucher.id.slice(0, 8)}</Badge>
                                                         </div>
                                                         <p className="text-3xl font-bold tracking-tight">{voucher.amount} <span className="text-base font-medium text-muted-foreground">USDC</span></p>
                                                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
@@ -192,6 +211,16 @@ export default function BeneficiaryDashboard() {
                                                             <MapPin className="h-3 w-3 text-red-500" /> {voucher.zone}
                                                         </p>
                                                     </div>
+
+                                                    {voucher.donor && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Funded By</p>
+                                                            <p className="text-sm font-semibold flex items-center gap-1 text-blue-600">
+                                                                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                                                {voucher.donor === 'Anonymous' ? 'Anonymous Donor' : `${voucher.donor.slice(0, 6)}...${voucher.donor.slice(-4)}`}
+                                                            </p>
+                                                        </div>
+                                                    )}
 
                                                     <div className="flex gap-2">
                                                         <Button variant="outline" size="sm" className="h-8 text-[10px] gap-1.5" onClick={() => window.print()}>
@@ -211,9 +240,10 @@ export default function BeneficiaryDashboard() {
                                                         value={JSON.stringify({
                                                             id: voucher.id,
                                                             amount: voucher.amount,
-                                                            beneficiary: "0x123",
+                                                            beneficiary: address,
                                                             type: voucher.type,
-                                                            zone: voucher.zone
+                                                            zone: voucher.zone,
+                                                            qrCode: voucher.qrCode
                                                         })}
                                                         size={120}
                                                         className="h-28 w-28"
@@ -244,20 +274,26 @@ export default function BeneficiaryDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
-                                                {MOCK_HISTORY.map((tx) => (
-                                                    <tr key={tx.id} className="hover:bg-muted/50 transition-colors">
-                                                        <td className="px-6 py-4 font-mono text-xs flex items-center gap-2">
-                                                            <Calendar className="h-3 w-3 text-muted-foreground" /> {tx.date}
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium">{tx.item}</td>
-                                                        <td className="px-6 py-4 text-muted-foreground">{tx.location}</td>
-                                                        <td className="px-6 py-4">
-                                                            <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-200 border-none">
-                                                                {tx.status}
-                                                            </Badge>
-                                                        </td>
+                                                {vouchers.filter(v => v.status === 'REDEEMED' || v.status === 'EXPIRED').length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={4} className="px-6 py-4 text-center text-muted-foreground">No history found.</td>
                                                     </tr>
-                                                ))}
+                                                ) : (
+                                                    vouchers.filter(v => v.status === 'REDEEMED' || v.status === 'EXPIRED').map((tx) => (
+                                                        <tr key={tx.id} className="hover:bg-muted/50 transition-colors">
+                                                            <td className="px-6 py-4 font-mono text-xs flex items-center gap-2">
+                                                                <Calendar className="h-3 w-3 text-muted-foreground" /> {tx.expiry} {/* Using expiry as date placeholder */}
+                                                            </td>
+                                                            <td className="px-6 py-4 font-medium">{tx.type}</td>
+                                                            <td className="px-6 py-4 text-muted-foreground">{tx.zone}</td>
+                                                            <td className="px-6 py-4">
+                                                                <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-200 border-none">
+                                                                    {tx.status}
+                                                                </Badge>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>

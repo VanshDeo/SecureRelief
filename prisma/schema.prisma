@@ -31,6 +31,90 @@ model User {
   role          Role
   status        Status   @default(PENDING)
   nonce         String?  // For SIWE
+  balance       Decimal  @default(0) @db.Decimal(18, 2) // Mock Stablecoin Balance
+  
+  // Relations
+  receivedVouchers Voucher[] @relation("BeneficiaryVouchers")
+  redeemedVouchers Voucher[] @relation("VendorRedemptions")
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+
+model DisasterZone {
+  id            String     @id @default(uuid())
+  name          String
+  location      String
+  latitude      Float
+  longitude     Float
+  budget        Decimal    @default(0) @db.Decimal(18, 2)
+  allocated     Decimal    @default(0) @db.Decimal(18, 2)
+  distributed   Decimal    @default(0) @db.Decimal(18, 2)
+  beneficiaries Int        @default(0)
+  status        ZoneStatus @default(PENDING)
+  severity      Severity   @default(MEDIUM)
+  type          String     // e.g., "Cyclone", "Flood"
+  radius        Float      @default(1000) // Radius in meters
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  donations     Donation[]
+  vouchers      Voucher[]
+}
+
+model Donation {
+  id           String       @id @default(uuid())
+  amount       Decimal      @db.Decimal(18, 2)
+  donorAddress String?
+  zoneId       String
+  zone         DisasterZone @relation(fields: [zoneId], references: [id])
+  timestamp    DateTime     @default(now())
+  status       String       @default("COMPLETED")
+  currency     String       @default("USDC")
+  voucher      Voucher?
+}
+
+enum ZoneStatus {
+  ACTIVE
+  CRITICAL
+  PENDING
+  COMPLETED
+  ARCHIVED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Voucher {
+  id            String        @id @default(uuid())
+  amount        Decimal       @db.Decimal(18, 2) // Value in USDC
+  qrCode        String        @unique // Unique token string for the QR
+  status        VoucherStatus @default(ISSUED)
+  
+  beneficiaryId String
+  beneficiary   User          @relation("BeneficiaryVouchers", fields: [beneficiaryId], references: [id])
+  
+  zoneId        String
+  zone          DisasterZone  @relation(fields: [zoneId], references: [id])
+  
+  vendorId      String?
+  vendor        User?         @relation("VendorRedemptions", fields: [vendorId], references: [id])
+
+  donationId    String?       @unique
+  donation      Donation?     @relation(fields: [donationId], references: [id])
+  
+  createdAt     DateTime   @default(now())
+  redeemedAt    DateTime?
+}
+
+enum VoucherStatus {
+  ISSUED
+  REDEEMED
+  EXPIRED
+  CANCELLED
+}
+
