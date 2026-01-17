@@ -34,7 +34,7 @@ const stats = [
 
 export function Stats() {
   return (
-    <section className="relative z-20 py-12 container mx-auto px-4 md:px-6">
+    <section id="impact" className="relative z-20 py-12 container mx-auto px-4 md:px-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, i) => (
           <motion.div

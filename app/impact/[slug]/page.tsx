@@ -11,6 +11,7 @@ import { AllocationChart } from '@/components/dashboard/AllocationChart';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { ImpactMetrics } from '@/components/dashboard/ImpactMetrics';
 import Link from 'next/link';
+import { AidMap } from '@/components/map/AidMap';
 
 export default function ImpactDashboard() {
     return (
@@ -21,11 +22,11 @@ export default function ImpactDashboard() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                     <span>Campaigns</span>
                     <span>&gt;</span>
-                    <span className="text-primary">Hurricane Delta</span>
+                    <span className="text-primary">Odisha Cyclone</span>
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Hurricane Delta Relief Fund</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Odisha Cyclone Relief Fund</h1>
                         <p className="text-muted-foreground">Transparency Dashboard & Live Impact Tracking</p>
                     </div>
                     <Badge variant="success" className="w-fit gap-1 text-sm py-1 px-3">
@@ -88,15 +89,10 @@ export default function ImpactDashboard() {
             </div>
 
             {/* Map Placeholder */}
-            <Card className="overflow-hidden">
-                <div className="h-[300px] w-full bg-slate-100 dark:bg-slate-800 relative flex items-center justify-center">
-                    <div className="absolute inset-0 bg-[url('https://docs.mapbox.com/mapbox-gl-js/assets/radar.gif')] bg-cover opacity-50 grayscale" />
-                    <div className="z-10 bg-background/80 backdrop-blur px-4 py-2 rounded-lg font-medium border shadow-sm">
-                        Impact Zone Visualization (Mapbox Integration)
-                    </div>
-                    <Badge variant="destructive" className="absolute top-4 right-4">Active Crisis Zone</Badge>
-                </div>
-            </Card>
+            {/* Live Impact Map */}
+            <div className="rounded-xl overflow-hidden shadow-lg">
+                <AidMap />
+            </div>
 
             {/* Bottom Feeds */}
             <ActivityFeed />

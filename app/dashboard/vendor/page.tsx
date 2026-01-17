@@ -5,13 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRedeemVoucher } from '@/lib/web3/hooks';
-import { ScanLine, CheckCircle2, XCircle, ArrowRight, Loader2, History } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ScanLine, CheckCircle2, ArrowRight, Loader2, History } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { RoleGuard } from '@/components/auth/RoleGuard';
+
+interface ScannedData {
+    id: number | string;
+    amount: number;
+    type: string;
+    beneficiary: string;
+}
 
 export default function VendorDashboard() {
     const [isScanning, setIsScanning] = useState(false);
-    const [scannedData, setScannedData] = useState<any>(null);
+    const [scannedData, setScannedData] = useState<ScannedData | null>(null);
     const [manualCode, setManualCode] = useState("");
 
     // Web3 Hook
@@ -34,7 +41,7 @@ export default function VendorDashboard() {
 
     const handleRedeem = () => {
         if (!scannedData) return;
-        redeem(scannedData.id);
+        redeem(Number(scannedData.id));
     };
 
     const resetScan = () => {
@@ -178,7 +185,7 @@ export default function VendorDashboard() {
     );
 }
 
-function DollarSignIcon(props: any) {
+function DollarSignIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

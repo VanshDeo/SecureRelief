@@ -29,9 +29,12 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
                 router.push('/');
             }
         } else {
-            setAuthorized(true);
+            // Authorized
+            if (!authorized) {
+                setAuthorized(true);
+            }
         }
-    }, [isAuthenticated, role, allowedRoles, router, isLoading]);
+    }, [isAuthenticated, role, allowedRoles, router, isLoading, authorized]);
 
     if (isLoading || !authorized) {
         return (

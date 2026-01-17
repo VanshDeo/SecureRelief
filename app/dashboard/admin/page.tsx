@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-// import { Dialog } from '@headlessui/react';
-import { Plus, ShieldAlert, Users, Wallet, Activity, MapPin, MoreHorizontal, Search, FileCog, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog';
+import { Plus, ShieldAlert, Users, Wallet, Activity, MoreHorizontal, Search, FileCog } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RoleGuard } from '@/components/auth/RoleGuard';
 
@@ -113,64 +113,62 @@ export default function AdminDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* Simple Create Modal Overlay */}
-                <AnimatePresence>
-                    {isCreateModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
-                            >
-                                <div className="p-6 border-b">
-                                    <h2 className="text-xl font-bold">Create New Disaster Zone</h2>
-                                    <p className="text-sm text-muted-foreground">Initialize a new relief effort on-chain.</p>
-                                </div>
-                                <form onSubmit={handleCreateZone} className="p-6 space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Zone Name</label>
-                                        <Input
-                                            placeholder="e.g. 'Pacific Cyclone Relief'"
-                                            required
-                                            value={newZone.name}
-                                            onChange={e => setNewZone({ ...newZone, name: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Location / Region</label>
-                                        <Input
-                                            placeholder="Region, Country"
-                                            required
-                                            value={newZone.location}
-                                            onChange={e => setNewZone({ ...newZone, location: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Initial USDC Budget</label>
-                                        <Input
-                                            type="number"
-                                            placeholder="100000"
-                                            required
-                                            value={newZone.budget}
-                                            onChange={e => setNewZone({ ...newZone, budget: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="pt-4 flex gap-3">
-                                        <Button type="button" variant="outline" className="flex-1" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-                                        <Button type="submit" className="flex-1">Deploy Zone</Button>
-                                    </div>
-                                </form>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Create New Disaster Zone</DialogTitle>
+                            <DialogDescription>Initialize a new relief effort on-chain.</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleCreateZone} className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Zone Name</label>
+                                <Input
+                                    placeholder="e.g. 'Pacific Cyclone Relief'"
+                                    required
+                                    value={newZone.name}
+                                    onChange={e => setNewZone({ ...newZone, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Location / Region</label>
+                                <Input
+                                    placeholder="Region, Country"
+                                    required
+                                    value={newZone.location}
+                                    onChange={e => setNewZone({ ...newZone, location: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Initial USDC Budget</label>
+                                <Input
+                                    type="number"
+                                    placeholder="100000"
+                                    required
+                                    value={newZone.budget}
+                                    onChange={e => setNewZone({ ...newZone, budget: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex gap-3 justify-end pt-2">
+                                <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                                <Button type="submit">Deploy Zone</Button>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
         </RoleGuard>
     )
 }
 
-function StatCard({ icon: Icon, label, value, sub, theme = "default" }: any) {
+interface StatCardProps {
+    icon: any; // Lucide icon type is complex, keeping as any or simplified React.ElementType for now
+    label: string;
+    value: string;
+    sub?: string;
+    theme?: 'default' | 'green' | 'red';
+}
+
+function StatCard({ icon: Icon, label, value, sub, theme = "default" }: StatCardProps) {
     return (
         <Card>
             <CardContent className="p-6">
