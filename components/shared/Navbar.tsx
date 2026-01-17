@@ -45,7 +45,7 @@ export function Navbar() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                         <ShieldCheck className="h-5 w-5" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight">Relief Fund</span>
+                    <span className="text-xl font-bold tracking-tight">Secure Relief</span>
                 </Link>
 
                 {/* Desktop Navigation & Actions (Grouped on Right) */}

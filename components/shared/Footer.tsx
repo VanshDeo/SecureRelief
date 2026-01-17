@@ -2,10 +2,10 @@ export function Footer() {
     return (
         <footer className="bg-gray-950 py-12 text-gray-400">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="grid gap-8 md:grid-cols-4">
+                <div className="grid gap-8 md:grid-cols-3">
                     <div>
                         <div className="mb-4 flex items-center gap-2 text-white">
-                            <span className="text-xl font-bold">Relief Fund</span>
+                            <span className="text-xl font-bold">Secure Relief</span>
                         </div>
                         <p className="text-sm leading-relaxed">
                             Immediate, transparent, and direct disaster relief powered by blockchain technology.
@@ -30,18 +30,10 @@ export function Footer() {
                             <li><a href="#" className="hover:text-white">Terms of Service</a></li>
                         </ul>
                     </div>
-                    <div>
-                        <h4 className="mb-4 font-semibold text-white">Trusted By</h4>
-                        <div className="flex gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-                            {/* Placeholders for logos */}
-                            <div className="h-8 w-8 bg-current rounded-full" />
-                            <div className="h-8 w-8 bg-current rounded-full" />
-                            <div className="h-8 w-8 bg-current rounded-full" />
-                        </div>
-                    </div>
+
                 </div>
                 <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-800 pt-8 sm:flex-row text-xs">
-                    <p>&copy; 2026 Relief Fund Inc. All rights reserved.</p>
+                    <p>&copy; 2026 Secure Relief Inc. All rights reserved.</p>
                     <div className="flex gap-4">
                         <a href="#" className="hover:text-white">Twitter</a>
                         <a href="#" className="hover:text-white">Discord</a>
