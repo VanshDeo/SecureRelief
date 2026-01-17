@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-// import { Dialog } from '@headlessui/react';  <-- REMOVED or commented out if I want to just delete the line I will mimic deletion.
+// import { Dialog } from '@headlessui/react';
 import { Plus, ShieldAlert, Users, Wallet, Activity, MapPin, MoreHorizontal, Search, FileCog, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RoleGuard } from '@/components/auth/RoleGuard';
 
 // Mock Data
 const MOCK_ZONES = [
@@ -37,133 +38,135 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="container mx-auto p-4 md:p-8 space-y-8 relative">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Admin Control Center</h1>
-                    <p className="text-muted-foreground">Manage disaster zones, treasury allocations, and system oversight.</p>
+        <RoleGuard allowedRoles={['admin']}>
+            <div className="container mx-auto p-4 md:p-8 space-y-8 relative">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Admin Control Center</h1>
+                        <p className="text-muted-foreground">Manage disaster zones, treasury allocations, and system oversight.</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline"><FileCog className="mr-2 h-4 w-4" /> Audit Logs</Button>
+                        <Button onClick={() => setIsCreateModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Disaster Zone</Button>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline"><FileCog className="mr-2 h-4 w-4" /> Audit Logs</Button>
-                    <Button onClick={() => setIsCreateModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Disaster Zone</Button>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard icon={Wallet} label="Total Treasury" value="$2.4M USDC" sub="Available for allocation" />
+                    <StatCard icon={ShieldAlert} label="Active Zones" value={zones.filter(z => z.status === 'Active').length.toString()} sub="Currently operational" />
+                    <StatCard icon={Users} label="Total Beneficiaries" value="16,550" sub="Verified across all zones" />
+                    <StatCard icon={Activity} label="System Health" value="98.9%" sub="All oracles online" theme="green" />
                 </div>
-            </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard icon={Wallet} label="Total Treasury" value="$2.4M USDC" sub="Available for allocation" />
-                <StatCard icon={ShieldAlert} label="Active Zones" value={zones.filter(z => z.status === 'Active').length.toString()} sub="Currently operational" />
-                <StatCard icon={Users} label="Total Beneficiaries" value="16,550" sub="Verified across all zones" />
-                <StatCard icon={Activity} label="System Health" value="98.9%" sub="All oracles online" theme="green" />
-            </div>
+                {/* Zones Management */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Disaster Zones</CardTitle>
+                        <CardDescription>Monitor and manage active relief efforts.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex-1 max-w-sm">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input type="search" placeholder="Search zones..." className="pl-9" />
+                                </div>
+                            </div>
 
-            {/* Zones Management */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Disaster Zones</CardTitle>
-                    <CardDescription>Monitor and manage active relief efforts.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-1 max-w-sm">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input type="search" placeholder="Search zones..." className="pl-9" />
+                            <div className="rounded-md border">
+                                <div className="grid grid-cols-6 border-b bg-muted/50 p-3 text-xs font-semibold text-muted-foreground uppercase">
+                                    <div className="col-span-2">Zone Name</div>
+                                    <div>Status</div>
+                                    <div className="text-right">Budget</div>
+                                    <div className="text-right">Allocated</div>
+                                    <div className="text-right">Actions</div>
+                                </div>
+                                <div className="divide-y">
+                                    {zones.map((zone) => (
+                                        <div key={zone.id} className="grid grid-cols-6 p-4 items-center gap-4 hover:bg-muted/50 transition-colors text-sm">
+                                            <div className="col-span-2">
+                                                <div className="font-medium">{zone.name}</div>
+                                                <div className="text-xs text-muted-foreground">{zone.location}</div>
+                                            </div>
+                                            <div>
+                                                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${zone.status === 'Active' ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                                                    zone.status === 'Critical' ? 'bg-red-50 text-red-700 ring-red-600/20' :
+                                                        'bg-yellow-50 text-yellow-800 ring-yellow-600/20'
+                                                    }`}>
+                                                    {zone.status}
+                                                </span>
+                                            </div>
+                                            <div className="text-right font-mono">${zone.budget.toLocaleString()}</div>
+                                            <div className="text-right font-mono text-muted-foreground">${zone.allocated.toLocaleString()}</div>
+                                            <div className="text-right">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
 
-                        <div className="rounded-md border">
-                            <div className="grid grid-cols-6 border-b bg-muted/50 p-3 text-xs font-semibold text-muted-foreground uppercase">
-                                <div className="col-span-2">Zone Name</div>
-                                <div>Status</div>
-                                <div className="text-right">Budget</div>
-                                <div className="text-right">Allocated</div>
-                                <div className="text-right">Actions</div>
-                            </div>
-                            <div className="divide-y">
-                                {zones.map((zone) => (
-                                    <div key={zone.id} className="grid grid-cols-6 p-4 items-center gap-4 hover:bg-muted/50 transition-colors text-sm">
-                                        <div className="col-span-2">
-                                            <div className="font-medium">{zone.name}</div>
-                                            <div className="text-xs text-muted-foreground">{zone.location}</div>
-                                        </div>
-                                        <div>
-                                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${zone.status === 'Active' ? 'bg-green-50 text-green-700 ring-green-600/20' :
-                                                zone.status === 'Critical' ? 'bg-red-50 text-red-700 ring-red-600/20' :
-                                                    'bg-yellow-50 text-yellow-800 ring-yellow-600/20'
-                                                }`}>
-                                                {zone.status}
-                                            </span>
-                                        </div>
-                                        <div className="text-right font-mono">${zone.budget.toLocaleString()}</div>
-                                        <div className="text-right font-mono text-muted-foreground">${zone.allocated.toLocaleString()}</div>
-                                        <div className="text-right">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                {/* Simple Create Modal Overlay */}
+                <AnimatePresence>
+                    {isCreateModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
+                            >
+                                <div className="p-6 border-b">
+                                    <h2 className="text-xl font-bold">Create New Disaster Zone</h2>
+                                    <p className="text-sm text-muted-foreground">Initialize a new relief effort on-chain.</p>
+                                </div>
+                                <form onSubmit={handleCreateZone} className="p-6 space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Zone Name</label>
+                                        <Input
+                                            placeholder="e.g. 'Pacific Cyclone Relief'"
+                                            required
+                                            value={newZone.name}
+                                            onChange={e => setNewZone({ ...newZone, name: e.target.value })}
+                                        />
                                     </div>
-                                ))}
-                            </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Location / Region</label>
+                                        <Input
+                                            placeholder="Region, Country"
+                                            required
+                                            value={newZone.location}
+                                            onChange={e => setNewZone({ ...newZone, location: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Initial USDC Budget</label>
+                                        <Input
+                                            type="number"
+                                            placeholder="100000"
+                                            required
+                                            value={newZone.budget}
+                                            onChange={e => setNewZone({ ...newZone, budget: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="pt-4 flex gap-3">
+                                        <Button type="button" variant="outline" className="flex-1" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                                        <Button type="submit" className="flex-1">Deploy Zone</Button>
+                                    </div>
+                                </form>
+                            </motion.div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Simple Create Modal Overlay */}
-            <AnimatePresence>
-                {isCreateModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
-                        >
-                            <div className="p-6 border-b">
-                                <h2 className="text-xl font-bold">Create New Disaster Zone</h2>
-                                <p className="text-sm text-muted-foreground">Initialize a new relief effort on-chain.</p>
-                            </div>
-                            <form onSubmit={handleCreateZone} className="p-6 space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Zone Name</label>
-                                    <Input
-                                        placeholder="e.g. 'Pacific Cyclone Relief'"
-                                        required
-                                        value={newZone.name}
-                                        onChange={e => setNewZone({ ...newZone, name: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Location / Region</label>
-                                    <Input
-                                        placeholder="Region, Country"
-                                        required
-                                        value={newZone.location}
-                                        onChange={e => setNewZone({ ...newZone, location: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Initial USDC Budget</label>
-                                    <Input
-                                        type="number"
-                                        placeholder="100000"
-                                        required
-                                        value={newZone.budget}
-                                        onChange={e => setNewZone({ ...newZone, budget: e.target.value })}
-                                    />
-                                </div>
-                                <div className="pt-4 flex gap-3">
-                                    <Button type="button" variant="outline" className="flex-1" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-                                    <Button type="submit" className="flex-1">Deploy Zone</Button>
-                                </div>
-                            </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </RoleGuard>
     )
 }
 
