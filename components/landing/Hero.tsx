@@ -28,7 +28,7 @@ export function Hero() {
       <div className="relative rounded-[2.5rem] overflow-hidden min-h-[600px] flex items-center bg-gray-900 text-white shadow-2xl ring-1 ring-black/5">
         {/* Background Image / Overlay */}
         <div
-          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?q=80&w=2070&auto=format&fit=crop')] 
+          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1728320771441-17a19df0fe4c?q=80&w=2370&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')] 
           bg-cover bg-center bg-no-repeat"
         />
         {/* Gradient Overlay for text readability */}
