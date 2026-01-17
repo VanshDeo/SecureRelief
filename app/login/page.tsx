@@ -21,7 +21,7 @@ const roles = [
 
 export default function LoginPage() {
     const { isConnected } = useAccount();
-    const { connect } = useConnect();
+    const { connect, connectors } = useConnect();
     const { setRole, isAuthenticated, role } = useAuth();
     const router = useRouter();
 
@@ -112,15 +112,41 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        className="w-full h-12 text-base gap-2"
-                        onClick={() => connect({ connector: injected() })}
-                        disabled={isConnected}
-                    >
-                        <Wallet className="h-5 w-5" />
-                        {isConnected ? 'Wallet Connected' : 'Auto-Detect Role'}
-                    </Button>
+                    <div className="space-y-3">
+                        <Button
+                            className="w-full h-12 text-base gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-500/20"
+                            onClick={() => {
+                                const injectedConnector = connectors.find(c => c.id === 'injected');
+                                if (injectedConnector) connect({ connector: injectedConnector });
+                            }}
+                            disabled={isConnected}
+                        >
+                            <div className="h-6 w-6 bg-white/20 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-sm">
+                                <span className="text-[10px] font-bold text-white">W</span>
+                            </div>
+                            {isConnected ? 'Weilliptic Connected' : 'Connect Weilliptic'}
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="w-full h-12 text-base gap-2"
+                            onClick={() => {
+                                const mmConnector = connectors.find(c => c.name === 'MetaMask' || c.id === 'io.metamask');
+                                if (mmConnector) {
+                                    connect({ connector: mmConnector });
+                                } else {
+                                    const fallback = connectors.find(c => c.id !== 'injected');
+                                    if (fallback) connect({ connector: fallback });
+                                }
+                            }}
+                            disabled={isConnected}
+                        >
+                            <div className="relative h-5 w-5">
+                                <Wallet className="h-5 w-5" />
+                            </div>
+                            {isConnected ? 'Wallet Connected' : 'Connect MetaMask / Other'}
+                        </Button>
+                    </div>
 
                     <div className="text-center text-sm text-muted-foreground">
                         New to SecureRelief?{' '}

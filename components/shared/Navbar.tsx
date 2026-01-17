@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/MockAuthContext';
@@ -23,7 +23,26 @@ export function Navbar() {
     const [isUserOpen, setIsUserOpen] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+    const notifRef = useRef<HTMLDivElement>(null);
+    const userRef = useRef<HTMLDivElement>(null);
+
     const router = useRouter();
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+                setIsNotifOpen(false);
+            }
+            if (userRef.current && !userRef.current.contains(event.target as Node)) {
+                setIsUserOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const handleLogin = () => {
         router.push('/login');
@@ -100,7 +119,7 @@ export function Navbar() {
                                 <div className="h-6 w-px bg-border/50 mx-1" />
 
                                 {/* Notifications */}
-                                <div className="relative">
+                                <div className="relative" ref={notifRef}>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -148,7 +167,7 @@ export function Navbar() {
                                 </div>
 
                                 {/* User Profile Button */}
-                                <div className="relative">
+                                <div className="relative" ref={userRef}>
                                     <button
                                         onClick={() => setIsUserOpen(!isUserOpen)}
                                         className="flex items-center gap-2 focus:outline-none ml-1"
@@ -190,6 +209,12 @@ export function Navbar() {
                                                     <Link href={`/dashboard/${role}`} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
                                                         <User className="h-4 w-4 text-muted-foreground" />
                                                         Dashboard
+                                                    </Link>
+                                                    <Link href="/profile" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
+                                                        <Avatar className="h-4 w-4">
+                                                            <AvatarFallback className="text-[10px]">P</AvatarFallback>
+                                                        </Avatar>
+                                                        Profile Settings
                                                     </Link>
                                                     <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
                                                         <Bell className="h-4 w-4 text-muted-foreground" />
