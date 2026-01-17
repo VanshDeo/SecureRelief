@@ -10,6 +10,7 @@ import { FundsChart } from '@/components/dashboard/FundsChart';
 import { AllocationChart } from '@/components/dashboard/AllocationChart';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { ImpactMetrics } from '@/components/dashboard/ImpactMetrics';
+import Link from 'next/link';
 
 export default function ImpactDashboard() {
     return (
@@ -59,9 +60,11 @@ export default function ImpactDashboard() {
                             </div>
 
                             <div className="flex gap-4">
-                                <Button size="lg" className="flex-1 text-base gap-2 shadow-lg shadow-primary/25">
-                                    <Heart className="h-5 w-5 fill-current" /> Donate Now
-                                </Button>
+                                <Link href="/login" className="flex-1">
+                                    <Button size="lg" className="w-full text-base gap-2 shadow-lg shadow-primary/25">
+                                        <Heart className="h-5 w-5 fill-current" /> Donate Now
+                                    </Button>
+                                </Link>
                                 <Button variant="outline" size="lg" className="gap-2">
                                     <Share2 className="h-5 w-5" /> Share
                                 </Button>

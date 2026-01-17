@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Progress } from '@/components/ui/Progress';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 const campaigns = [
   {
@@ -53,9 +54,11 @@ export function Campaigns() {
           <h2 className="text-3xl font-bold tracking-tight">Active Relief Campaigns</h2>
           <p className="text-muted-foreground mt-2 max-w-xl">Support urgent on-ground operations directly ensuring funds reach those in need.</p>
         </div>
-        <Button variant="ghost" className="gap-2">
-          View All Campaigns <ArrowRight className="h-4 w-4" />
-        </Button>
+        <Link href="/login">
+          <Button variant="ghost" className="gap-2">
+            View All Campaigns <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -109,9 +112,11 @@ export function Campaigns() {
               </CardContent>
 
               <CardFooter className="pt-0 pb-6">
-                <Button className="w-full">
-                  Donate
-                </Button>
+                <Link href="/login" className="w-full">
+                  <Button className="w-full">
+                    Donate
+                  </Button>
+                </Link>
               </CardFooter>
             </Card>
           </motion.div>

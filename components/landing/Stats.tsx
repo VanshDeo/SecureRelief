@@ -34,7 +34,7 @@ const stats = [
 
 export function Stats() {
   return (
-    <section className="py-12 -mt-24 relative z-20 container mx-auto px-4 md:px-6">
+    <section className="relative z-20 py-12 container mx-auto px-4 md:px-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, i) => (
           <motion.div
@@ -44,7 +44,7 @@ export function Stats() {
             transition={{ delay: i * 0.1, duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <Card className="border-0 shadow-xl ring-1 ring-black/5 backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 h-full">
+            <Card className="border-0 shadow-xl ring-1 ring-black/5 bg-white text-gray-900 h-full">
               <CardContent className="p-8 flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
