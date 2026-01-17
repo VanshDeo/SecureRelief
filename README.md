@@ -123,7 +123,7 @@ secure-relief/
 │   └── utils/              # Helper Functions
 ├── prisma/                 # Database Schema & Migrations
 ├── public/                 # Static Assets
-└── contracts/              # Solidity Smart Contracts (Future)
+└── contracts/              # Rust Smart Contracts (Future)
 ```
 
 ---
