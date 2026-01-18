@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 use weil_macros::WeilType;
 use weil_rs::collections::map::WeilMap;
-use weil_contracts::fungible_token::FungibleToken;
+use weil_contracts::fungible::FungibleToken;
 use crate::types::{Voucher, DisasterZone, Vendor};
 
 #[derive(Serialize, Deserialize, WeilType)]

@@ -8,4 +8,6 @@ pub fn generate_voucher_id(zone_id: &str, beneficiary_id: &str) -> String {
 
 pub fn current_timestamp() -> u64 {
     Runtime::block_timestamp()
+        .parse::<u64>()
+        .unwrap_or(0)
 }

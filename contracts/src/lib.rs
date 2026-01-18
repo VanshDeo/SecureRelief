@@ -9,7 +9,7 @@ use weil_rs::collections::map::WeilMap;
 use weil_rs::collections::WeilId;
 use weil_rs::runtime::Runtime;
 // We don't need HttpClient here anymore, it's hidden inside modules/oracle_mcp.rs!
-use weil_contracts::fungible_token::FungibleToken;
+use weil_contracts::fungible::FungibleToken;
 
 use crate::state::AidDistributorState;
 use crate::types::{Voucher, DisasterZone, Vendor};
@@ -21,7 +21,7 @@ pub trait AidDistributor {
     // --- USDC Standard Wrappers ---
     async fn name(&self) -> String;
     async fn symbol(&self) -> String;
-    async fn balance_of(&self, addr: String) -> u64;
+    async fn balance_for(&self, addr: String) -> u64;
     async fn transfer(&mut self, to: String, amount: u64) -> Result<(), String>;
 
     // --- Disaster Logic ---
@@ -66,7 +66,7 @@ impl AidDistributor for AidDistributorState {
     async fn symbol(&self) -> String { self.usdc.symbol() }
 
     #[query]
-    async fn balance_of(&self, addr: String) -> u64 { self.usdc.balance_of(addr) }
+    async fn balance_for(&self, addr: String) -> u64 { self.usdc.balance_for(addr).unwrap_or(0) }
 
     #[mutate]
     async fn transfer(&mut self, to: String, amount: u64) -> Result<(), String> {

@@ -187,13 +187,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setRole(data.user.role.toLowerCase() as UserRole);
             toast("Secure Login Successful", { type: 'success', description: "Session authenticated via SIWE." });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('[Auth] SIWE Login failed:', error);
-            // Fallback: stay in mock mode if SIWE fails but wallet is connected
-            toast('Security login failed', {
+            toast('Login failed', {
                 type: 'error',
-                description: 'Proceeding in Demo Mode (Limited Access).'
+                description: error.message || 'Authentication error'
             });
+            throw error; // Re-throw so login page can handle it
         } finally {
             setIsLoading(false);
         }

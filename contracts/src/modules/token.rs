@@ -3,7 +3,7 @@ use crate::state::AidDistributorState;
 impl AidDistributorState {
     /// Internal helper to check balance
     pub fn get_usdc_balance(&self, addr: String) -> u64 {
-        self.usdc.balance_of(addr)
+        self.usdc.balance_for(addr).unwrap_or(0)
     }
 
     /// Internal helper to execute transfers

@@ -126,7 +126,14 @@ export default function LoginPage() {
                                                     onClick={async () => {
                                                         try {
                                                             await connectAsync({ connector });
-                                                            await login();
+                                                            try {
+                                                                await login();
+                                                            } catch (loginErr: any) {
+                                                                // If user not found, redirect to signup
+                                                                if (loginErr.message?.includes('not found') || loginErr.message?.includes('register')) {
+                                                                    router.push('/signup');
+                                                                }
+                                                            }
                                                         } catch (err: any) {
                                                             if (err.code !== 4001) alert(`Wallet error: ${err.message}`);
                                                         }
@@ -143,24 +150,6 @@ export default function LoginPage() {
                                             </div>
                                         )}
                                     </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                                        <div className="h-[1px] flex-1 bg-border" />
-                                        Option 2: Demo Bypass
-                                        <div className="h-[1px] flex-1 bg-border" />
-                                    </p>
-                                    <Button
-                                        className="w-full h-12 text-base font-bold gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg shadow-blue-500/20"
-                                        onClick={() => loginAsDemo(role)}
-                                    >
-                                        <Code className="h-4 w-4" />
-                                        Login as {role.toUpperCase()} (Instant)
-                                    </Button>
-                                    <p className="text-[10px] text-center text-muted-foreground italic">
-                                        Bypasses wallet requirement for rapid development testing.
-                                    </p>
                                 </div>
                             </motion.div>
                         ) : (
@@ -183,6 +172,6 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -36,6 +36,7 @@ model User {
   // Relations
   receivedVouchers Voucher[] @relation("BeneficiaryVouchers")
   redeemedVouchers Voucher[] @relation("VendorRedemptions")
+  disasterReports  DisasterReport[] @relation("ReportedDisasters")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -118,3 +119,35 @@ enum VoucherStatus {
   CANCELLED
 }
 
+
+
+model DisasterReport {
+  id            String       @id @default(uuid())
+  title         String
+  description   String
+  location      String
+  latitude      Float?
+  longitude     Float?
+  disasterType  String       // e.g., "Flood", "Earthquake", "Fire"
+  severity      Severity     @default(MEDIUM)
+  status        ReportStatus @default(PENDING)
+  
+  reportedById  String
+  reportedBy    User         @relation("ReportedDisasters", fields: [reportedById], references: [id])
+  
+  images        String[]     // Array of image URLs
+  contactInfo   String?
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  reviewedAt    DateTime?
+  reviewedBy    String?
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  RESOLVED
+}

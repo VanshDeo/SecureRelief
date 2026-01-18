@@ -15,11 +15,14 @@ impl AidDistributorState {
         }
 
         // Active MCP Call: The contract "pulls" data
-        let response = HttpClient::request(proof_url, HttpMethod::Get)
+        let response = HttpClient::request(&proof_url, HttpMethod::Get)
             .send()
             .map_err(|e| format!("MCP HTTP Error: {:?}", e))?;
 
-        let body = response.text().map_err(|_| "Failed to parse response body")?;
+            let body = response.text();
+if body.is_empty() {
+    return Err("Empty response body".into());
+}
         
         // Simple logic: assume server returns literal "true" string for valid proofs
         let is_verified = body.trim().eq_ignore_ascii_case("true");

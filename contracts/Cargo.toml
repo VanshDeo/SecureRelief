@@ -1,23 +1,13 @@
 [package]
-name = "aid_distributor"
+name = "contracts"
 version = "0.1.0"
-edition = "2021"
-
-# This is critical for WeilChain Applets (WASM)
-[lib]
-crate-type = ["cdylib", "rlib"] 
+edition = "2024"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-anyhow = "1.0"
+weil_rs = {path = "./wadk/adk/rust/weil_rs"} # Enable HTTP for MCP
+weil_macros = {path = "./wadk/adk/rust/weil_rs/weil_macros"}
+weil_contracts = {path = "./wadk/adk/rust/weil_rs/weil_contracts"} # For FungibleToken
 
-# WeilChain Dependencies
-# Note: In a real environment, you might need to point these to a local path or git repo
-# if they aren't on crates.io yet. For now, we assume they are available.
-weil_rs = { path = "../node_modules/weilliptic/weil-sdk/weil_rs", features = ["http"] }
-weil_macros = { path = "../node_modules/weilliptic/weil-sdk/weil_macros" }
-weil_contracts = { path = "../node_modules/weilliptic/weil-sdk/weil_contracts" }
-
-[dev-dependencies]
-# Dependencies used ONLY for 'cargo test'
-tokio = { version = "1", features = ["full"] } # Useful if mocking async
+[lib]
+crate-type = ["cdylib"]

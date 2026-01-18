@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useAccount } from 'wagmi';
-import { CheckCircle, AlertCircle, RefreshCw, WifiOff, FileText, Loader2, Upload, History, MapPin, Calendar, Landmark } from 'lucide-react';
+import { CheckCircle, AlertCircle, RefreshCw, WifiOff, FileText, Loader2, Upload, History, MapPin, Calendar, Landmark, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RoleGuard } from '@/components/auth/RoleGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/Dialog';
@@ -31,6 +31,16 @@ export default function BeneficiaryDashboard() {
     const [loadingZones, setLoadingZones] = useState(false);
     const [selectedZone, setSelectedZone] = useState<string>('');
     const [isClaiming, setIsClaiming] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
+    const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+    const [reportForm, setReportForm] = useState({
+        title: '',
+        description: '',
+        location: '',
+        disasterType: '',
+        severity: 'MEDIUM',
+        contactInfo: ''
+    });
 
     // Simulate offline detection
     useEffect(() => {
@@ -144,6 +154,59 @@ export default function BeneficiaryDashboard() {
         }
     }, [isClaimOpen]);
 
+    const handleSubmitReport = async () => {
+        if (!reportForm.title || !reportForm.description || !reportForm.location || !reportForm.disasterType) {
+            toast("Please fill in all required fields", { type: 'error' });
+            return;
+        }
+
+        try {
+            setIsSubmittingReport(true);
+
+            const userRes = await fetch(`/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+            });
+
+            let reportedById = '';
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                reportedById = userData.id;
+            }
+
+            const res = await fetch('/api/disaster-reports', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...reportForm,
+                    reportedById: reportedById || address
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setIsReportOpen(false);
+                setReportForm({
+                    title: '',
+                    description: '',
+                    location: '',
+                    disasterType: '',
+                    severity: 'MEDIUM',
+                    contactInfo: ''
+                });
+                toast("Disaster report submitted successfully!", { type: 'success', description: "Admin will review your report soon." });
+            } else {
+                toast(data.error || "Failed to submit report", { type: 'error' });
+            }
+        } catch (error) {
+            console.error("Submit report error:", error);
+            toast("An error occurred while submitting report", { type: 'error' });
+        } finally {
+            setIsSubmittingReport(false);
+        }
+    };
+
+
     const totalValue = vouchers
         .filter(v => v.status === 'ISSUED')
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -158,9 +221,15 @@ export default function BeneficiaryDashboard() {
                     </div>
                     <div className="flex gap-4 items-center">
                         {status === 'verified' && (
-                            <Button onClick={() => setIsClaimOpen(true)} className="bg-primary hover:bg-primary/90">
-                                Claim Relief Aid
-                            </Button>
+                            <>
+                                <Button onClick={() => setIsClaimOpen(true)} className="bg-primary hover:bg-primary/90">
+                                    Claim Relief Aid
+                                </Button>
+                                <Button onClick={() => setIsReportOpen(true)} variant="outline" className="gap-2 border-orange-500 text-orange-600 hover:bg-orange-50">
+                                    <AlertTriangleIcon className="h-4 w-4" />
+                                    Report Disaster
+                                </Button>
+                            </>
                         )}
                         {isOffline && (
                             <Badge variant="destructive" className="flex gap-1 animate-pulse">
@@ -295,6 +364,122 @@ export default function BeneficiaryDashboard() {
                                         Processing...
                                     </>
                                 ) : 'Generate Voucher'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Report Disaster Dialog */}
+                <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <AlertTriangleIcon className="h-5 w-5 text-orange-500" />
+                                Report a Disaster
+                            </DialogTitle>
+                            <DialogDescription>
+                                Help us respond quickly by reporting disasters in your area. Your report will be reviewed by our admin team.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Title *</label>
+                                <input
+                                    type="text"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    placeholder="e.g., Severe flooding in downtown area"
+                                    value={reportForm.title}
+                                    onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })}
+                                />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Description *</label>
+                                <textarea
+                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    placeholder="Describe the disaster situation in detail..."
+                                    value={reportForm.description}
+                                    onChange={(e) => setReportForm({ ...reportForm, description: e.target.value })}
+                                    rows={4}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Location *</label>
+                                    <input
+                                        type="text"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        placeholder="City, State"
+                                        value={reportForm.location}
+                                        onChange={(e) => setReportForm({ ...reportForm, location: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Disaster Type *</label>
+                                    <Select onValueChange={(value) => setReportForm({ ...reportForm, disasterType: value })} value={reportForm.disasterType}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Flood">Flood</SelectItem>
+                                            <SelectItem value="Earthquake">Earthquake</SelectItem>
+                                            <SelectItem value="Fire">Fire</SelectItem>
+                                            <SelectItem value="Cyclone">Cyclone/Hurricane</SelectItem>
+                                            <SelectItem value="Landslide">Landslide</SelectItem>
+                                            <SelectItem value="Drought">Drought</SelectItem>
+                                            <SelectItem value="Other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Severity</label>
+                                <Select onValueChange={(value) => setReportForm({ ...reportForm, severity: value })} value={reportForm.severity}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="LOW">Low</SelectItem>
+                                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                                        <SelectItem value="HIGH">High</SelectItem>
+                                        <SelectItem value="CRITICAL">Critical</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Contact Information (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    placeholder="Phone number or email"
+                                    value={reportForm.contactInfo}
+                                    onChange={(e) => setReportForm({ ...reportForm, contactInfo: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-lg border border-orange-100 dark:border-orange-900/20">
+                                <div className="flex gap-3">
+                                    <AlertCircle className="h-5 w-5 text-orange-500 shrink-0" />
+                                    <div className="text-xs text-orange-700 dark:text-orange-300 space-y-1">
+                                        <p className="font-bold">Important</p>
+                                        <p>Your report will be reviewed by our admin team. False reports may result in account suspension.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsReportOpen(false)}>Cancel</Button>
+                            <Button onClick={handleSubmitReport} disabled={isSubmittingReport} className="bg-orange-500 hover:bg-orange-600">
+                                {isSubmittingReport ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Submitting...
+                                    </>
+                                ) : 'Submit Report'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
